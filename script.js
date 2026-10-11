@@ -13,106 +13,47 @@ let isPermanentlyBlocked = localStorage.getItem('isPermanentlyBlocked') === 'tru
 const terminalInput = document.getElementById('terminal-input');
 const terminalOutput = document.getElementById('terminal-output');
 
-if (terminalInput) {
-  terminalInput.addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-      const command = e.target.value.toLowerCase().trim();
-      const p = document.createElement('p');
-      p.textContent = `admin@core:~$ ${e.target.value}`;
-      terminalOutput.appendChild(p);
+if (terminalInput && terminalOutput) {
+  terminalInput.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') return;
 
-      const response = document.createElement('p');
-      if (command === 'unblock') {
-        localStorage.removeItem('failedAttempts');
-        localStorage.removeItem('lockoutUntil');
-        localStorage.removeItem('isPermanentlyBlocked');
-        failedAttempts = 0;
-        lockoutUntil = 0;
-        isPermanentlyBlocked = false;
-        response.textContent = '> SYSTEM SECURITY CLEARED. ALL BLOCKS REMOVED.';
-      } else if (command === 'clear') {
-        terminalOutput.innerHTML = '<p>> TERMINAL CLEARED.</p>';
-      } else if (command !== '') {
-        response.textContent = `> COMMAND NOT RECOGNIZED: ${command}`;
-      }
-      
-      if (response.textContent) {
+    const input = terminalInput.value.trim();
+    const [command, ...args] = input.split(/\s+/);
+    const response = document.createElement('p');
+    const entry = document.createElement('p');
+    entry.textContent = `guest@core:~$ ${input}`;
+    terminalOutput.appendChild(entry);
+
+    if (command === 'clear') {
+      terminalOutput.replaceChildren();
+    } else if (command === 'help') {
+      response.textContent = '> COMMANDS: help, clear, open <https://url>';
+      terminalOutput.appendChild(response);
+    } else if (command === 'open') {
+      const address = args.join(' ');
+      let url;
+      try {
+        url = new URL(address.includes('://') ? address : `https://${address}`);
+      } catch {
+        response.textContent = '> ERROR: ENTER A VALID HTTP OR HTTPS URL.';
         terminalOutput.appendChild(response);
       }
-      
-      e.target.value = '';
-      terminalOutput.scrollTop = terminalOutput.scrollHeight;
+
+      if (url && (url.protocol === 'https:' || url.protocol === 'http:')) {
+        window.open(url.href, '_blank', 'noopener,noreferrer');
+        response.textContent = `> OPENING ${url.href}`;
+        terminalOutput.appendChild(response);
+      } else if (url) {
+        response.textContent = '> ERROR: ONLY HTTP AND HTTPS LINKS CAN BE OPENED.';
+        terminalOutput.appendChild(response);
+      }
+    } else if (input) {
+      response.textContent = `> UNKNOWN COMMAND: ${input}. TYPE 'help' FOR COMMANDS.`;
+      terminalOutput.appendChild(response);
     }
-  });
-}
 
-const proxyBtn = document.getElementById('proxy-btn');
-const proxyInput = document.getElementById('proxy-url');
-const proxyFrame = document.getElementById('proxy-frame');
-const fullscreenBtn = document.getElementById('fullscreen-btn');
-const proxyContainer = document.getElementById('proxy-container');
-
-if (proxyBtn && proxyInput && proxyFrame) {
-  proxyBtn.addEventListener('click', function() {
-    let url = proxyInput.value.trim();
-    if (url) {
-      if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        url = 'https://' + url;
-      }
-
-      // Handle YouTube specifically
-      if (url.includes('youtube.com/') || url.includes('youtu.be/')) {
-        let videoId = '';
-        if (url.includes('shorts/')) {
-          videoId = url.split('/shorts/')[1].split('?')[0];
-        } else if (url.includes('v=')) {
-          videoId = url.split('v=')[1].split('&')[0];
-        } else if (url.includes('youtu.be/')) {
-          videoId = url.split('youtu.be/')[1].split('?')[0];
-        }
-        
-        if (videoId) {
-          // Routing through the device's network by loading directly in the iframe
-          url = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&showinfo=0`;
-          proxyFrame.src = url;
-        } else {
-          // Fallback to proxy if we can't find an ID
-          const encodedUrl = btoa(url);
-          const proxyUrl = `/system/api/v2/worker?q=${encodeURIComponent(encodedUrl)}`;
-          proxyFrame.src = proxyUrl;
-        }
-      } else {
-        // Use the backend proxy for other sites with base64 encoding to bypass filters
-        const encodedUrl = btoa(url);
-        const proxyUrl = `/system/api/v2/worker?q=${encodeURIComponent(encodedUrl)}`;
-        proxyFrame.src = proxyUrl;
-      }
-      
-      if (terminalOutput) {
-        const p = document.createElement('p');
-        p.textContent = `> PROXYING REQUEST: ${url}`;
-        terminalOutput.appendChild(p);
-        terminalOutput.scrollTop = terminalOutput.scrollHeight;
-      }
-    }
-  });
-
-  if (fullscreenBtn && proxyContainer) {
-    fullscreenBtn.addEventListener('click', function() {
-      if (proxyContainer.requestFullscreen) {
-        proxyContainer.requestFullscreen();
-      } else if (proxyContainer.webkitRequestFullscreen) { /* Safari */
-        proxyContainer.webkitRequestFullscreen();
-      } else if (proxyContainer.msRequestFullscreen) { /* IE11 */
-        proxyContainer.msRequestFullscreen();
-      }
-    });
-  }
-
-  proxyInput.addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-      proxyBtn.click();
-    }
+    terminalInput.value = '';
+    terminalOutput.scrollTop = terminalOutput.scrollHeight;
   });
 }
 

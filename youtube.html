@@ -109,6 +109,9 @@
     <div class="youtube-container" id="yt-container">
       <iframe id="yt-frame" class="youtube-frame" src="https://www.youtube-nocookie.com/embed?rel=0" allowfullscreen></iframe>
     </div>
+    <p id="yt-watch-fallback" hidden style="margin-top: 0.75rem;">
+      <a id="yt-watch-link" class="nav-btn" target="_blank" rel="noopener noreferrer">WATCH ON YOUTUBE</a>
+    </p>
 
     <div class="history-panel">
       <div class="history-title">SESSION TRANSMISSIONS (CLICK TO LOAD)</div>
@@ -126,6 +129,8 @@
     const fullBtn = document.getElementById('yt-fullscreen-btn');
     const ytFrame = document.getElementById('yt-frame');
     const ytContainer = document.getElementById('yt-container');
+    const watchFallback = document.getElementById('yt-watch-fallback');
+    const watchLink = document.getElementById('yt-watch-link');
     const historyList = document.getElementById('history-list');
 
     let videoHistory = JSON.parse(localStorage.getItem('yt_history') || '[]');
@@ -160,6 +165,8 @@
 
       if (videoId && videoId.length === 11) {
         ytFrame.src = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&showinfo=0`;
+        watchLink.href = `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`;
+        watchFallback.hidden = false;
         
         if (!videoHistory.includes(videoId)) {
           videoHistory.unshift(videoId);
@@ -173,11 +180,8 @@
     function browseVideos() {
       let query = ytInput.value.trim();
       if (!query) return;
-      // Use the direct YouTube search results page instead of the embed search list
-      // which is often restricted or broken by YouTube's policies.
-      // This routes the search through the user's browser context.
       const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
-      ytFrame.src = searchUrl;
+      window.open(searchUrl, '_blank', 'noopener,noreferrer');
     }
 
     searchBtn.addEventListener('click', browseVideos);

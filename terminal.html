@@ -21,7 +21,7 @@
       <li><a href="youtube.html">YOUTUBE</a></li>
       <li><a href="chat.html">CHAT</a></li>
       <li><a href="strongdog.html">STRONGDOG</a></li>
-      <li><a href="games.html">FREEZENOVA (<span style="color: #ff0000;">down</span>)</a></li
+      <li><a href="games.html">FREEZENOVA (<span style="color: #ff0000;">down</span>)</a></li>
       <li><a href="entertainment.html">ENTERTAINMENT</a></li>
       <li><a href="apply.html">APPLY</a></li>
       <li><a href="about.html">ABOUT</a></li>
@@ -35,24 +35,12 @@
       <div class="terminal-output" id="terminal-output">
         <p>> INITIALIZING SYSTEM INTERFACE...</p>
         <p>> READY FOR INPUT.</p>
-        <p>> TYPE 'unblock' TO CLEAR SECURITY LOCKS.</p>
-        <p>> Note: The terminal is in beta stage, so some sites may not work. We are currently investigating the issue with plain Times New Roman text appearing for some websites.</p>
+        <p>> TYPE 'help' TO VIEW AVAILABLE COMMANDS.</p>
       </div>
       
-      <div class="unblocker-interface">
-        <div class="input-group">
-          <input type="text" id="proxy-url" placeholder="ENTER TARGET URL (e.g., https://example.com)">
-          <button id="proxy-btn">BYPASS</button>
-          <button id="fullscreen-btn">FULLSCREEN</button>
-        </div>
-        <div class="proxy-frame-container" id="proxy-container">
-          <iframe id="proxy-frame" src="about:blank"></iframe>
-        </div>
-      </div>
-
       <div class="terminal-input-line">
-        <span class="prompt">admin@core:~$</span>
-        <input type="text" id="terminal-input" autofocus>
+        <label class="prompt" for="terminal-input">guest@core:~$</label>
+        <input type="text" id="terminal-input" aria-label="Terminal command" autocomplete="off" autofocus>
       </div>
     </div>
   </div>
