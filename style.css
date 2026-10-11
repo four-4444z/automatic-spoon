@@ -1,403 +1,333 @@
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Automatic Spoon is a futuristic digital ecosystem for secure access, media, and developer tools."
+    />
+    <title>Automatic Spoon | System Core</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link href="style.css" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+    <canvas id="matrix-canvas"></canvas>
 
-body {
-  font-family: 'Courier New', Courier, monospace;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  background-color: #000000;
-  background-image: 
-    linear-gradient(rgba(0, 255, 0, 0.20) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 255, 0, 0.20) 1px, transparent 1px);
-  background-size: 25px 25px;
-  color: #00ff00;
-}
+    <header class="site-header">
+      <div class="container nav-wrap">
+        <a href="#home" class="brand" aria-label="Automatic Spoon home">
+          <span class="brand-mark">>_</span>
+          automatic_spoon
+        </a>
 
-/* Matrix Rain Canvas */
-#matrix-canvas {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: -1;
-  pointer-events: none;
-  opacity: 0.25;
-}
+        <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
 
-.login-container {
-  background: #111111;
-  padding: 2rem;
-  border-radius: 8px;
-  border: 2px solid #00ff00;
-  box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
-  width: 100%;
-  max-width: 400px;
-}
+        <nav class="site-nav" aria-label="Main navigation">
+          <a href="#home">Home</a>
+          <a href="#about">About</a>
+          <a href="#platform">Platform</a>
+          <a href="#features">Features</a>
+          <a href="#contact">Contact</a>
+          <a href="main.html" class="button small ghost">Portal</a>
+        </nav>
+      </div>
+    </header>
 
-h1 {
-  margin-bottom: 1.5rem;
-  text-align: center;
-  color: #00ff00;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-}
+    <main id="home">
+      <section class="hero section">
+        <div class="container hero-grid">
+          <div class="hero-copy reveal">
+            <p class="eyebrow">SYSTEM CORE // ACTIVE</p>
+            <h1>Build smarter digital experiences with a faster operating layer.</h1>
+            <p class="lead">
+              Automatic Spoon combines secure infrastructure, media workflows, and developer-ready
+              interfaces into one clean cyber-lean platform.
+            </p>
+            <div class="hero-actions">
+              <a href="main.html" class="button primary">Launch portal</a>
+              <a href="#platform" class="button secondary">Explore platform</a>
+            </div>
+            <ul class="hero-metrics" aria-label="Key metrics">
+              <li><strong>99.9%</strong><span>system uptime</span></li>
+              <li><strong>24/7</strong><span>core operations</span></li>
+              <li><strong>∞</strong><span>ideas to deploy</span></li>
+            </ul>
+          </div>
 
-.input-group {
-  margin-bottom: 1.5rem;
-}
+          <div class="hero-panel reveal">
+            <div class="panel-header">
+              <span class="dot green"></span>
+              <span class="dot amber"></span>
+              <span class="dot red"></span>
+              <span class="panel-title">system_status</span>
+            </div>
 
-.input-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  color: #00ff00;
-}
+            <div class="panel-body">
+              <div class="status-row">
+                <span>System status</span>
+                <span class="status-live">ONLINE</span>
+              </div>
+              <div class="status-row">
+                <span>Session state</span>
+                <span>ACTIVE</span>
+              </div>
+              <div class="status-row">
+                <span>Security clearance</span>
+                <span>LEVEL 5</span>
+              </div>
+              <div class="status-row">
+                <span>Pipeline health</span>
+                <span class="status-good">STABLE</span>
+              </div>
 
-.input-group input {
-  width: 100%;
-  padding: 0.75rem;
-  padding-right: 40px;
-  background: #000000;
-  border: 1px solid #00ff00;
-  border-radius: 4px;
-  font-size: 1rem;
-  color: #00ff00;
-  font-family: 'Courier New', Courier, monospace;
-  -webkit-text-security: disc;
-}
+              <div class="terminal-window">
+                <div class="terminal-line">root@automatic-spoon:~$ ./bootstrap --enable-vision</div>
+                <div class="terminal-line">[OK] Media pipelines initialized</div>
+                <div class="terminal-line">[OK] Security modules synchronized</div>
+                <div class="terminal-line">[OK] Public site is live</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-input[type="text"] {
-  -webkit-text-security: none !important;
-}
+      <section id="about" class="section alt-panel">
+        <div class="container narrow reveal">
+          <p class="section-tag">ABOUT</p>
+          <h2>Built for users who want clarity, speed, and control.</h2>
+          <p>
+            Automatic Spoon is a design-forward platform inspired by command interfaces and sleek
+            modern dashboards. It blends utility, media, and systems thinking into a single memorable
+            experience.
+          </p>
+        </div>
+      </section>
 
-.password-container {
-  position: relative;
-  width: 100%;
-}
+      <section id="platform" class="section">
+        <div class="container">
+          <div class="section-heading reveal">
+            <p class="section-tag">PLATFORM</p>
+            <h2>Everything your web presence needs in one place.</h2>
+          </div>
 
-.toggle-password {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  color: #00ff00;
-  cursor: pointer;
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 0.8rem;
-  padding: 5px;
-  width: auto;
-}
+          <div class="card-grid">
+            <article class="feature-card reveal">
+              <div class="icon">[01]</div>
+              <h3>Core portal</h3>
+              <p>Deliver an immersive dashboard for operations, updates, and guided navigation.</p>
+            </article>
 
-.toggle-password:hover {
-  text-shadow: 0 0 8px #00ff00;
-  box-shadow: none;
-  background: none;
-}
+            <article class="feature-card reveal">
+              <div class="icon">[02]</div>
+              <h3>Media workflows</h3>
+              <p>Support video, streaming, and content experiences without interrupting the main brand.</p>
+            </article>
 
-.input-group input:focus {
-  outline: none;
-  box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
-}
+            <article class="feature-card reveal">
+              <div class="icon">[03]</div>
+              <h3>Secure access</h3>
+              <p>Protect sensitive areas with a clean, user-friendly access flow and structured UX.</p>
+            </article>
+          </div>
+        </div>
+      </section>
 
-/* Navbar Styles */
-.navbar {
-  width: 100%;
-  padding: 1rem 2rem;
-  background: #111111;
-  border-bottom: 2px solid #00ff00;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 1000;
-}
+      <section id="features" class="section alt-panel">
+        <div class="container">
+          <div class="section-heading reveal">
+            <p class="section-tag">FEATURES</p>
+            <h2>Purpose-built for modern web experiences.</h2>
+          </div>
 
-.nav-logo {
-  font-weight: bold;
-  font-size: 1.2rem;
-  letter-spacing: 2px;
-}
+          <div class="split-layout">
+            <div class="info-stack reveal">
+              <div class="info-block">
+                <h3>Fast onboarding</h3>
+                <p>Launch quickly with a single-page experience and clear user journeys.</p>
+              </div>
+              <div class="info-block">
+                <h3>Responsive design</h3>
+                <p>Support mobile, tablet, and desktop with an adaptable interface and modern layout.</p>
+              </div>
+            </div>
 
-.menu-toggle {
-  display: none;
-  flex-direction: column;
-  cursor: pointer;
-  gap: 5px;
-}
+            <div class="info-stack reveal">
+              <div class="info-block highlight">
+                <h3>Brand personality</h3>
+                <p>Keep a distinctive cyberpunk aesthetic while maintaining usability and readability.</p>
+              </div>
+              <div class="info-block">
+                <h3>Easy deployment</h3>
+                <p>Publish directly from GitHub Pages with static HTML, CSS, and JavaScript.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-.menu-toggle .bar {
-  width: 25px;
-  height: 3px;
-  background-color: #00ff00;
-  transition: all 0.3s ease;
-}
+      <section id="contact" class="section cta-section">
+        <div class="container cta-box reveal">
+          <div>
+            <p class="section-tag">CONTACT</p>
+            <h2>Ready to launch your next web experience?</h2>
+          </div>
+          <a href="mailto:hello@automatic-spoon.dev" class="button primary">hello@automatic-spoon.dev</a>
+        </div>
+      </section>
+    </main>
 
-.nav-links {
-  display: flex;
-  list-style: none;
-  gap: 0.75rem;
-  align-items: center;
-}
+    <footer class="site-footer">
+      <div class="container footer-row">
+        <p>© <span data-year></span> Automatic Spoon</p>
+        <p>Built for the future.</p>
+      </div>
+    </footer>
 
-.nav-links a {
-  color: #00ff00;
-  text-decoration: none;
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  text-align: center;
-  white-space: nowrap;
-}
+    <script src="script.js"></script>
+  </body>
+</html>
 
-.nav-links li:not(:last-child)::after {
-  content: "|";
-  color: #00ff00;
-  margin-left: 0.75rem;
-  opacity: 0.5;
-}
 
-.nav-links a:hover {
-  text-shadow: 0 0 8px #00ff00;
-}
 
-@media screen and (max-width: 768px) {
-  .menu-toggle {
-    display: flex;
-  }
 
-  .nav-links li:not(:last-child)::after {
-    content: none;
-  }
 
-  .nav-links {
-    display: none;
-    flex-direction: column;
-    width: 100%;
-    position: absolute;
-    top: 60px;
-    left: 0;
-    background: #111111;
-    border-bottom: 2px solid #00ff00;
-    padding: 1rem 0;
-    text-align: center;
-    gap: 1rem;
-  }
 
-  .nav-links.active {
-    display: flex;
-  }
 
-  .menu-toggle.is-active .bar:nth-child(2) {
-    opacity: 0;
-  }
 
-  .menu-toggle.is-active .bar:nth-child(1) {
-    transform: translateY(8px) rotate(45deg);
-  }
 
-  .menu-toggle.is-active .bar:nth-child(3) {
-    transform: translateY(-8px) rotate(-45deg);
-  }
-}
 
-/* Main Content Styles */
-.main-content {
-  padding-top: 80px;
-  text-align: center;
-  width: 100%;
-}
 
-.status-panel {
-  display: inline-block;
-  margin-top: 2rem;
-  padding: 2rem;
-  border: 1px solid #00ff00;
-  background: rgba(0, 255, 0, 0.05);
-  text-align: left;
-}
 
-.blink {
-  animation: blinker 1s linear infinite;
-}
 
-@keyframes blinker {
-  50% { opacity: 0; }
-}
 
-/* Terminal Styles */
-.terminal-container {
-  max-width: 1000px;
-  margin: 2rem auto;
-  background: #0a0a0a;
-  border: 1px solid #00ff00;
-  padding: 1rem;
-  text-align: left;
-  min-height: 600px;
-  display: flex;
-  flex-direction: column;
-}
 
-.unblocker-interface {
-  margin: 1rem 0;
-  border-top: 1px solid rgba(0, 255, 0, 0.3);
-  padding-top: 1rem;
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-}
 
-.unblocker-interface .input-group {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 1rem;
-}
 
-.unblocker-interface input {
-  background: #000;
-  border: 1px solid #00ff00;
-  color: #00ff00;
-  padding: 0.5rem;
-  font-family: 'Courier New', Courier, monospace;
-  flex-grow: 1;
-}
 
-.unblocker-interface button {
-  width: auto;
-  padding: 0.5rem 2rem;
-}
 
-#fullscreen-btn {
-  background-color: #00ff00;
-  color: #000;
-}
 
-#fullscreen-btn:hover {
-  background-color: #00cc00;
-  box-shadow: 0 0 15px #00ff00;
-}
 
-.proxy-frame-container {
-  flex-grow: 1;
-  border: 1px solid #00ff00;
-  background: #fff;
-  min-height: 400px;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-}
 
-.proxy-frame-container:fullscreen {
-  width: 100vw;
-  height: 100vh;
-  background: #000;
-}
 
-.proxy-frame-container:fullscreen iframe {
-  width: 100%;
-  height: 100%;
-}
 
-#proxy-frame {
-  width: 100%;
-  height: 100%;
-  border: none;
-  flex-grow: 1;
-  display: block;
-}
 
-.terminal-output {
-  height: 100px;
-  overflow-y: auto;
-  margin-bottom: 1rem;
-  flex-shrink: 0;
-}
 
-.terminal-input-line {
-  display: flex;
-  gap: 10px;
-}
 
-.terminal-input-line input {
-  background: transparent;
-  border: none;
-  color: #00ff00;
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 1rem;
-  width: 100%;
-  outline: none;
-}
 
-/* Logs Styles */
-.logs-container {
-  max-width: 900px;
-  margin: 2rem auto;
-}
 
-.log-table {
-  width: 100%;
-  border-collapse: collapse;
-  border: 1px solid #00ff00;
-}
 
-.log-table th, .log-table td {
-  padding: 1rem;
-  border: 1px solid #00ff00;
-  text-align: left;
-}
 
-.log-table th {
-  background: rgba(0, 255, 0, 0.1);
-}
 
-.status-ok { color: #00ff00; }
 
-.nav-btn {
-  display: inline-block;
-  padding: 0.75rem 2rem;
-  border: 2px solid #00ff00;
-  color: #00ff00;
-  text-decoration: none;
-  font-weight: bold;
-  text-transform: uppercase;
-  transition: all 0.2s;
-  background: transparent;
-}
 
-.nav-btn:hover {
-  background-color: #00ff00;
-  color: #000000;
-  box-shadow: 0 0 15px rgba(0, 255, 0, 0.6);
-}
 
-.chat-btn {
-  font-size: 1rem;
-}
 
-button {
-  width: 100%;
-  padding: 0.75rem;
-  background-color: transparent;
-  border: 2px solid #00ff00;
-  border-radius: 4px;
-  color: #00ff00;
-  font-size: 1.1rem;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-family: 'Courier New', Courier, monospace;
-  text-transform: uppercase;
-}
 
-button:hover {
-  background-color: #00ff00;
-  color: #000000;
-  box-shadow: 0 0 20px rgba(0, 255, 0, 0.6);
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ "},{
