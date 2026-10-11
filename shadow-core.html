@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SHADOW CORE</title>
+  <link href="style.css" rel="stylesheet" type="text/css" />
+  <style>
+    .secret-container {
+      max-width: 900px;
+      margin: 2rem auto;
+      text-align: left;
+    }
+    .terminal-card {
+      border: 1px solid #00ff00;
+      background: rgba(0, 20, 0, 0.8);
+      padding: 2rem;
+      margin-bottom: 2rem;
+    }
+    .encrypted {
+      filter: blur(4px);
+      transition: filter 0.3s;
+      cursor: help;
+    }
+    .encrypted:hover {
+      filter: blur(0);
+    }
+  </style>
+</head>
+<body>
+  <canvas id="matrix-canvas"></canvas>
+  <div class="scanline"></div>
+  
+  <nav class="navbar">
+    <div class="nav-logo">>_ SHADOW_CORE</div>
+    <ul class="nav-links">
+      <li><a href="main.html">EXIT_SHADOW</a></li>
+    </ul>
+  </nav>
+
+  <div class="main-content secret-container">
+    <h1 style="color: #00ff00;">[ CLASSIFIED DATA ]</h1>
+    
+    <div class="terminal-card">
+      <h3 style="color: #00ff00;">> SYSTEM OVERRIDE PROTOCOLS</h3>
+      <p style="margin-top: 1rem;">1. Proxy Stealth: ACTIVE</p>
+      <p>2. Network Tunnel: ENCRYPTED</p>
+      <p>3. Vault Access: BYPASSED</p>
+      <div style="margin-top: 2rem; border-top: 1px solid #004400; padding-top: 1rem;">
+        <p style="color: #008800;">SECRET_KEY_ARCHIVE:</p>
+        <p class="encrypted">Python Pid: 94</p>
+        <p class="encrypted">Int. Port: 5000, Ex. Port: 80</p>
+      </div>
+    </div>
+
+    <div class="terminal-card">
+      <h3 style="color: #00ff00;">> SHADOW LOGS</h3>
+      <p style="opacity: 0.7; font-size: 0.9rem;">[2026-01-25] Shadow module initialized.</p>
+      <p style="opacity: 0.7; font-size: 0.9rem;">[2026-01-25] Chat password: secret_lock</p>
+      <a href="https://padlet.com/four_4444z/secret-chat-mau4g99qxfmph2pa" style="color: #00ff00; text-decoration: none; border: 1px solid #00ff00; padding: 0.1rem 1rem;">SECRET CHAT</a>
+      <a href="vault.html" style="color: #ff0000; text-decoration: none; border: 1px solid #ff0000; padding: 0.1rem 1rem;">DEV VAULT</a>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

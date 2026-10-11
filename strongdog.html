@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>STRONGDOG</title>
+  <link href="style.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+  <canvas id="matrix-canvas"></canvas>
+  <nav class="navbar">
+    <div class="nav-logo">>_ SYSTEM_CORE</div>
+    <div class="menu-toggle" id="mobile-menu">
+      <span class="bar"></span>
+      <span class="bar"></span>
+      <span class="bar"></span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="main.html">DASHBOARD</a></li>
+      <li><a href="terminal.html">TERMINAL</a></li>
+      <li><a href="youtube.html">YOUTUBE</a></li>
+      <li><a href="chat.html">CHAT</a></li>
+      <li><a href="strongdog.html" class="active">STRONGDOG</a></li>
+      <li><a href="games.html">FREEZENOVA (<span style="color: #ff0000;">down</span>)</a></li>
+      <li><a href="entertainment.html">ENTERTAINMENT</a></li>
+      <li><a href="apply.html">APPLY</a></li>
+      <li><a href="about.html">ABOUT</a></li>
+      <li><a href="index.html">LOGOUT</a></li>
+    </ul>
+  </nav>
+  
+  <div class="main-content">
+    <h1>STRONGDOG INTERFACE</h1>
+    <div class="embed-container" style="width: 90%; max-width: 1200px; margin: 2rem auto; height: 80vh; border: 2px solid #00ff00; background: #000; position: relative;">
+      <button onclick="document.getElementById('strongdog-frame').requestFullscreen()" style="position: absolute; top: 10px; right: 10px; z-index: 10; width: auto; padding: 5px 15px; font-size: 0.8rem; background: rgba(0,255,0,0.2);">FULLSCREEN</button>
+      <iframe src="/system/api/v2/worker?q=aHR0cHM6Ly9pbG92ZXNob3J0eS5naXRodWIuaW8=" style="width: 100%; height: 100%; border: none;" id="strongdog-frame"></iframe>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

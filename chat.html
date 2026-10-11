@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SECURE CHAT</title>
+  <link href="style.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+  <canvas id="matrix-canvas"></canvas>
+  <div class="scanline"></div>
+  <div class="grid"></div>
+  
+  <nav class="navbar">
+    <div class="nav-logo">>_ SYSTEM_CORE</div>
+    <div class="menu-toggle" id="mobile-menu">
+      <span class="bar"></span>
+      <span class="bar"></span>
+      <span class="bar"></span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="main.html">DASHBOARD</a></li>
+      <li><a href="terminal.html">TERMINAL</a></li>
+      <li><a href="youtube.html">YOUTUBE</a></li>
+      <li><a href="chat.html" class="active">CHAT</a></li>
+      <li><a href="strongdog.html">STRONGDOG</a></li>
+      <li><a href="games.html">FREEZENOVA (<span style="color: #ff0000;">down</span>)</a></li>
+      <li><a href="entertainment.html">ENTERTAINMENT</a></li>
+      <li><a href="apply.html">APPLY</a></li>
+      <li><a href="about.html">ABOUT</a></li>
+      <li><a href="index.html">LOGOUT</a></li>
+    </ul>
+  </nav>
+  
+  <div class="main-content">
+    <h1>SECURE CHAT TERMINAL</h1>
+    
+    <div id="chat-container" class="terminal-window" style="height: 400px; overflow-y: auto; border: 1px solid #00ff00; padding: 1rem; margin-bottom: 1rem; background: rgba(0, 20, 0, 0.9);">
+      <div id="chat-output">
+        <p style="color: #00ff00;">[ SYSTEM: SECURE CONNECTION ESTABLISHED ]</p>
+        <p style="color: #00ff00;">[ STATUS: ENCRYPTION ACTIVE ]</p>
+      </div>
+    </div>
+
+    <div class="chat-input-area" style="display: flex; gap: 10px;">
+      <span style="color: #00ff00; align-self: center;">guest@core:~$</span>
+      <input type="text" id="chat-input" placeholder="ENTER MESSAGE..." style="flex-grow: 1; background: transparent; border: 1px solid #00ff00; color: #00ff00; padding: 0.5rem; outline: none; font-family: 'Courier New', Courier, monospace;">
+      <button id="send-btn" class="nav-btn">SEND</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+  <script>
+    const chatInput = document.getElementById('chat-input');
+    const chatOutput = document.getElementById('chat-output');
+    const sendBtn = document.getElementById('send-btn');
+
+    function addMessage(user, text, isSystem = false) {
+      const p = document.createElement('p');
+      if (isSystem) {
+        p.style.color = '#00ff00';
+        p.textContent = `[ ${text} ]`;
+      } else {
+        const time = new Date().toLocaleTimeString();
+        p.innerHTML = `<span style="color: #888;">[${time}]</span> <span style="color: #00ff00;">${user}:</span> ${text}`;
+      }
+      chatOutput.appendChild(p);
+      const container = document.getElementById('chat-container');
+      container.scrollTop = container.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const text = chatInput.value.trim();
+      if (!text) return;
+      
+      addMessage('YOU', text);
+      chatInput.value = '';
+
+      // Mock response for chat
+      setTimeout(() => {
+        const responses = [
+          "MESSAGE RECEIVED. PROCESSING...",
+          "ENCRYPTED PACKET SENT TO VAULT.",
+          "SIGNAL STRENGTH NOMINAL.",
+          "TRACE DEPLETED. ORIGIN MASKED.",
+          "ACCESSING SECURE DATA STREAMS..."
+        ];
+        const randomResp = responses[Math.floor(Math.random() * responses.length)];
+        addMessage('SYSTEM', randomResp, true);
+      }, 1000);
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    chatInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+  </script>
+</body>
+</html>

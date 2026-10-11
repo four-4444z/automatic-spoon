@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SHADOW LOGIN</title>
+  <link href="style.css" rel="stylesheet" type="text/css" />
+  <style>
+    .login-box {
+      border: 2px solid #003300;
+      padding: 3rem;
+      background: rgba(0, 10, 0, 0.9);
+      max-width: 400px;
+      margin: 10vh auto;
+      box-shadow: 0 0 20px #003300;
+    }
+    .shadow-input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid #004400;
+      color: #00ff00;
+      padding: 0.5rem;
+      margin-bottom: 1.5rem;
+      outline: none;
+      font-family: 'Courier New', monospace;
+    }
+    .shadow-btn {
+      background: #002200;
+      border: 1px solid #004400;
+      color: #008800;
+      padding: 0.8rem 2rem;
+      cursor: pointer;
+      font-family: 'Courier New', monospace;
+      width: 100%;
+    }
+    .shadow-btn:hover {
+      border-color: #00ff00;
+      color: #00ff00;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="matrix-canvas"></canvas>
+  <div class="scanline"></div>
+  
+  <div class="login-box">
+    <h2 style="color: #004400; text-align: center; margin-bottom: 2rem;">[ SHADOW_AUTH ]</h2>
+    <input type="password" id="shadow-pass" class="shadow-input" placeholder="ENCRYPTION KEY">
+    <button id="shadow-btn" class="shadow-btn">DECRYPT</button>
+    <div id="feedback" style="color: #ff3333; margin-top: 1rem; text-align: center; font-size: 0.8rem;"></div>
+  </div>
+
+  <script src="script.js"></script>
+  <script>
+    const passInput = document.getElementById('shadow-pass');
+    const btn = document.getElementById('shadow-btn');
+    const fb = document.getElementById('feedback');
+
+    btn.onclick = () => {
+      if (passInput.value === 'ghost_protocol_7') {
+        fb.style.color = '#00ff00';
+        fb.textContent = 'PROTOCOL ACCEPTED. REDIRECTING...';
+        setTimeout(() => window.location.href = 'shadow-core.html', 1000);
+      } else {
+        fb.textContent = 'INVALID KEY. LOGGING ATTEMPT.';
+        passInput.value = '';
+      }
+    };
+    passInput.onkeypress = (e) => { if(e.key === 'Enter') btn.onclick(); };
+  </script>
+</body>
+</html>
