@@ -257,6 +257,7 @@ const browserStatus = document.getElementById('dashboard-browser-status');
 const browserBackButton = document.getElementById('dashboard-browser-back');
 const browserForwardButton = document.getElementById('dashboard-browser-forward');
 const browserRefreshButton = document.getElementById('dashboard-browser-refresh');
+const browserOpenTabButton = document.getElementById('dashboard-browser-open-tab');
 const clearBrowserTabsButton = document.getElementById('dashboard-browser-clear-tabs');
 const browserTabs = [];
 let activeBrowserTabId = null;
@@ -276,6 +277,7 @@ function updateBrowserNavigationControls() {
   browserBackButton.disabled = !tab || tab.historyIndex <= 0;
   browserForwardButton.disabled = !tab || tab.historyIndex >= tab.history.length - 1;
   browserRefreshButton.disabled = !tab || tab.historyIndex < 0;
+  browserOpenTabButton.disabled = !tab || !tab.url;
 }
 
 function setActiveBrowserTab(tab) {
@@ -598,6 +600,13 @@ browserRefreshButton?.addEventListener('click', async () => {
     browserStatus.textContent = error.message;
     browserAddressInput.focus();
   }
+});
+
+browserOpenTabButton?.addEventListener('click', () => {
+  const tab = browserTabs.find(({ id }) => id === activeBrowserTabId);
+  if (!tab?.url) return;
+  const openedWindow = window.open(createScramjetEmbedUrl(tab.url), '_blank');
+  if (openedWindow) openedWindow.opener = null;
 });
 
 document.getElementById('dashboard-browser-home')?.addEventListener('click', () => {

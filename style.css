@@ -638,6 +638,10 @@ button:hover {
   font-size: 1.15rem;
 }
 
+.dashboard-browser-address .dashboard-browser-open-tab {
+  font-size: 1rem;
+}
+
 .dashboard-browser-address .dashboard-browser-nav-button:disabled {
   opacity: 0.32;
   cursor: default;
