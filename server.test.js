@@ -1,6 +1,14 @@
 const assert = require('node:assert/strict');
 const { after, before, test } = require('node:test');
-const { createServer, isPublicAddress, normalizeTarget, proxyUrl, rewriteHtml } = require('./server');
+const {
+  createServer,
+  isDiscordWebhookUrl,
+  isPublicAddress,
+  normalizeDiscordWebhookUrl,
+  normalizeTarget,
+  proxyUrl,
+  rewriteHtml
+} = require('./server');
 
 let server;
 let baseUrl;
@@ -11,7 +19,7 @@ before(async () => {
     username: 'test-user',
     password: 'test-password',
     secret: 'test-session-signing-secret'
-  });
+  }, { scramjetPort: 8080 });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   baseUrl = `http://127.0.0.1:${server.address().port}`;
   const loginResponse = await fetch(`${baseUrl}/api/login`, {
@@ -39,10 +47,35 @@ test('redirects the entry page to the dashboard and reports the active proxy por
   const dashboardHtml = await dashboard.text();
   assert.equal(dashboard.status, 200);
   assert.match(dashboardHtml, /CORE_SEARCH/);
+  assert.doesNotMatch(dashboardHtml, /RAMMERHEAD/i);
   assert.match(dashboardHtml, /id="search-form"/);
+  assert.match(dashboardHtml, /id="bookmark-list"/);
+  assert.match(dashboardHtml, /id="bookmark-add"/);
+  assert.match(dashboardHtml, /id="bookmark-form"/);
+  assert.match(dashboardHtml, /id="search-status"/);
+  assert.match(dashboardHtml, /THROUGH SCRAMJET/);
+  assert.match(dashboardHtml, /id="dashboard-browser-chrome"/);
+  assert.match(dashboardHtml, /id="dashboard-browser-tabs"/);
+  assert.match(dashboardHtml, /id="dashboard-browser-address-form"/);
+  assert.match(dashboardHtml, /id="dashboard-browser-new-tab"/);
+  assert.match(dashboardHtml, /id="dashboard-browser-clear-tabs"[^>]*aria-label="Clear all tabs"/);
+  assert.match(dashboardHtml, /id="mobile-menu"[\s\S]*?<\/button>[\s\S]*?<\/div>\s*<form class="dashboard-browser-address"/);
+  assert.match(dashboardHtml, /id="dashboard-browser-back"/);
+  assert.match(dashboardHtml, /id="dashboard-browser-forward"/);
+  assert.match(dashboardHtml, /id="dashboard-browser-refresh"/);
+  assert.match(dashboardHtml, /LAST UPDATED:/);
+  assert.match(dashboardHtml, /suggestions\.html/);
+  const dashboardNav = dashboardHtml.match(/<nav\b[\s\S]*?<\/nav>/)[0];
+  assert.doesNotMatch(dashboardHtml, /href="browser\.html"/);
+  assert.doesNotMatch(dashboardNav, /id="mobile-menu"/);
   assert.match(dashboardHtml, /matrix-canvas/);
   assert.match(await (await fetch(`${baseUrl}/settings.html`, { headers })).text(), /id="search-engine"/);
+  const suggestionsHtml = await (await fetch(`${baseUrl}/suggestions.html`, { headers })).text();
+  assert.match(suggestionsHtml, /class="search-dashboard search-subpage"/);
+  assert.match(suggestionsHtml, /id="suggestion-form"/);
+  assert.match(suggestionsHtml, /LAST UPDATED:/);
   const settingsHtml = await (await fetch(`${baseUrl}/settings.html`, { headers })).text();
+  assert.match(settingsHtml, /class="search-dashboard search-subpage"/);
   assert.match(settingsHtml, /id="search-engine"/);
   assert.match(settingsHtml, /id="theme-hex"/);
   assert.match(settingsHtml, /id="panic-key"/);
@@ -54,14 +87,16 @@ test('redirects the entry page to the dashboard and reports the active proxy por
   assert.match(settingsHtml, /#64a8ff/);
   assert.match(settingsHtml, /#b18cff/);
   assert.match(settingsHtml, /#ff75be/);
-  assert.match(await (await fetch(`${baseUrl}/browser.html`, { headers })).text(), /id="browser-back"/);
-  assert.match(await (await fetch(`${baseUrl}/browser.js`, { headers })).text(), /system-core-navigate/);
-  assert.match(await (await fetch(`${baseUrl}/terminal.html`, { headers })).text(), /sandbox="allow-forms allow-scripts"/);
+  for (const page of ['/browser.html', '/browser.js', '/youtube.html', '/chat.html', '/strongdog.html', '/games.html', '/entertainment.html']) {
+    assert.equal((await fetch(`${baseUrl}${page}`)).status, 404, `${page} should be removed`);
+  }
+  const terminalHtml = await (await fetch(`${baseUrl}/terminal.html`, { headers })).text();
+  assert.match(terminalHtml, /url=main\.html/);
   assert.equal((await fetch(`${baseUrl}/main.html`, { headers })).status, 200);
   assert.equal((await fetch(`${baseUrl}/settings.html`)).status, 200);
   assert.equal((await fetch(`${baseUrl}/theme.html`, { headers })).status, 404);
   assert.equal((await fetch(`${baseUrl}/index.html`, { redirect: 'manual' })).headers.get('location'), '/main.html');
-  assert.deepEqual(await health.json(), { status: 'ok', proxyPort: 5000 });
+  assert.deepEqual(await health.json(), { status: 'ok', proxyPort: 5000, scramjetPort: 8080 });
 });
 
 test('serves pages and allows proxy requests without a login cookie', async () => {
@@ -73,6 +108,76 @@ test('serves pages and allows proxy requests without a login cookie', async () =
   );
   assert.equal(proxyResponse.status, 400);
   assert.match(await proxyResponse.text(), /public IP addresses/);
+});
+
+test('accepts validated suggestions and sends them to the configured Discord webhook', async () => {
+  const suppliedWebhookUrl = 'https://discord.com/api/webhooks/123456/secure-token/github';
+  assert.equal(isDiscordWebhookUrl(suppliedWebhookUrl), true);
+  assert.equal(
+    normalizeDiscordWebhookUrl(suppliedWebhookUrl),
+    'https://discord.com/api/webhooks/123456/secure-token'
+  );
+
+  let delivered;
+  const suggestionServer = createServer({
+    username: 'test-user',
+    password: 'test-password',
+    secret: 'test-session-signing-secret'
+  }, {
+    discordWebhookUrl: suppliedWebhookUrl,
+    sendDiscordWebhook: async (_webhookUrl, suggestion) => { delivered = suggestion; }
+  });
+  await new Promise((resolve) => suggestionServer.listen(0, '127.0.0.1', resolve));
+  const suggestionUrl = `http://127.0.0.1:${suggestionServer.address().port}/api/suggestions`;
+  try {
+    const response = await fetch(suggestionUrl, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        type: 'feature',
+        title: 'Add keyboard shortcuts',
+        details: 'Let people open tabs with a shortcut.',
+        name: 'Test User'
+      })
+    });
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), { ok: true });
+    assert.deepEqual(delivered, {
+      type: 'feature',
+      title: 'Add keyboard shortcuts',
+      details: 'Let people open tabs with a shortcut.',
+      name: 'Test User'
+    });
+
+    const crossOrigin = await fetch(suggestionUrl, {
+      method: 'POST',
+      headers: {
+        origin: 'https://attacker.example',
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({ type: 'feature', title: 'Cross-origin suggestion' })
+    });
+    assert.equal(crossOrigin.status, 403);
+
+    const invalid = await fetch(suggestionUrl, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ type: 'other', title: 'Bad type', details: '', name: '' })
+    });
+    assert.equal(invalid.status, 400);
+  } finally {
+    await new Promise((resolve, reject) => suggestionServer.close((error) => error ? reject(error) : resolve()));
+  }
+});
+
+test('does not accept suggestions without a configured webhook', async () => {
+  const response = await fetch(`${baseUrl}/api/suggestions`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ type: 'feature', title: 'Useful improvement' })
+  });
+  assert.equal(response.status, 503);
+  assert.deepEqual(await response.json(), { error: 'Suggestions are not configured yet.' });
 });
 
 test('issues a signed HttpOnly 30-day cookie only for correct credentials', async () => {
@@ -134,8 +239,39 @@ test('logout clears the session cookie', async () => {
 });
 
 test('does not expose backend source or Git metadata as static files', async () => {
-  for (const file of ['/server.js', '/server.test.js', '/.git/config']) {
+  for (const file of [
+    '/server.js',
+    '/server.test.js',
+    '/start.js',
+    '/scramjet-server.mjs',
+    '/scramjet-embed.html',
+    '/scramjet-sw.js',
+    '/.git/config'
+  ]) {
     assert.equal((await fetch(`${baseUrl}${file}`)).status, 404, `${file} must not be served`);
+  }
+});
+
+test('serves the isolated Scramjet browser and runtime locally', async () => {
+  const { startScramjetServer } = await import('./scramjet-server.mjs');
+  const scramjet = await startScramjetServer(0);
+  const base = `http://${scramjet.host}:${scramjet.port}`;
+  try {
+    const [health, embed, worker, runtime] = await Promise.all([
+      fetch(`${base}/health`),
+      fetch(`${base}/embed.html`),
+      fetch(`${base}/scramjet-sw.js`),
+      fetch(`${base}/scram/scramjet.all.js`)
+    ]);
+    assert.deepEqual(await health.json(), { status: 'ok' });
+    assert.equal(embed.status, 200);
+    assert.match(await embed.text(), /new ScramjetController/);
+    assert.equal(worker.status, 200);
+    assert.match(await worker.text(), /ScramjetServiceWorker/);
+    assert.equal(runtime.status, 200);
+    assert.match(runtime.headers.get('cross-origin-embedder-policy'), /require-corp/);
+  } finally {
+    await scramjet.close();
   }
 });
 

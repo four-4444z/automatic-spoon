@@ -13,6 +13,9 @@ const MAX_RESPONSE_BYTES = 12 * 1024 * 1024;
 const MAX_REDIRECTS = 5;
 const SESSION_COOKIE = 'system_core_session';
 const SESSION_DURATION_SECONDS = 30 * 24 * 60 * 60;
+const SUGGESTION_RATE_LIMIT = 5;
+const SUGGESTION_RATE_WINDOW_MS = 60 * 60 * 1000;
+const MAX_SUGGESTION_BODY_BYTES = 4096;
 const AUTH_FILE = path.join(ROOT, '.env');
 
 const MIME_TYPES = {
@@ -218,28 +221,13 @@ function sendError(response, statusCode, message) {
 }
 
 function loadAuthConfig() {
-  let fileValues = {};
-  try {
-    fileValues = Object.fromEntries(
-      fs.readFileSync(AUTH_FILE, 'utf8')
-        .split(/\r?\n/)
-        .filter((line) => line && !line.startsWith('#'))
-        .map((line) => {
-          const separator = line.indexOf('=');
-          return separator === -1
-            ? ['', '']
-            : [line.slice(0, separator), line.slice(separator + 1)];
-        })
-        .filter(([key]) => key)
-    );
-  } catch (error) {
-    if (error.code !== 'ENOENT') throw error;
-  }
+  const fileValues = readEnvironmentFile();
 
   const config = {
     username: process.env.AUTH_USERNAME || fileValues.AUTH_USERNAME,
     password: process.env.AUTH_PASSWORD || fileValues.AUTH_PASSWORD,
-    secret: process.env.SESSION_SECRET || fileValues.SESSION_SECRET
+    secret: process.env.SESSION_SECRET || fileValues.SESSION_SECRET,
+    discordWebhookUrl: process.env.DISCORD_WEBHOOK_URL || fileValues.DISCORD_WEBHOOK_URL
   };
 
   if (!config.username || !config.password || !config.secret) {
@@ -250,6 +238,7 @@ function loadAuthConfig() {
       `AUTH_USERNAME=${config.username}`,
       `AUTH_PASSWORD=${config.password}`,
       `SESSION_SECRET=${config.secret}`,
+      ...(config.discordWebhookUrl ? [`DISCORD_WEBHOOK_URL=${config.discordWebhookUrl}`] : []),
       ''
     ].join('\n'), { flag: 'w', mode: 0o600 });
     console.log(`Created local login credentials in ${AUTH_FILE}; keep this file private.`);
@@ -309,10 +298,100 @@ async function readJsonBody(request) {
   let size = 0;
   for await (const chunk of request) {
     size += chunk.length;
-    if (size > 4096) throw new Error('Login request is too large.');
+    if (size > MAX_SUGGESTION_BODY_BYTES) throw new Error('Request body is too large.');
     chunks.push(chunk);
   }
   return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+}
+
+function normalizeDiscordWebhookUrl(value) {
+  try {
+    const url = new URL(value);
+    if (
+      url.protocol !== 'https:' ||
+      !['discord.com', 'discordapp.com'].includes(url.hostname) ||
+      !/^\/api\/webhooks\/\d+\/[A-Za-z0-9._-]+(?:\/github)?\/?$/.test(url.pathname) ||
+      url.search ||
+      url.hash
+    ) return null;
+
+    url.pathname = url.pathname.replace(/\/github\/?$/, '').replace(/\/$/, '');
+    return url.href;
+  } catch {
+    return null;
+  }
+}
+
+function isDiscordWebhookUrl(value) {
+  return normalizeDiscordWebhookUrl(value) !== null;
+}
+
+function postDiscordWebhook(webhookUrl, suggestion) {
+  const endpoint = normalizeDiscordWebhookUrl(webhookUrl);
+  if (!endpoint) {
+    return Promise.reject(new Error('The Discord webhook URL is invalid.'));
+  }
+
+  const payload = JSON.stringify({
+    allowed_mentions: { parse: [] },
+    embeds: [{
+      title: 'Website change suggestion',
+      color: 0x61f99b,
+      fields: [
+        { name: 'Type', value: suggestion.type, inline: true },
+        { name: 'Suggestion', value: suggestion.title },
+        { name: 'Details', value: suggestion.details || 'No additional details provided.' },
+        { name: 'Name', value: suggestion.name || 'Anonymous', inline: true }
+      ],
+      timestamp: new Date().toISOString()
+    }]
+  });
+  const target = new URL(endpoint);
+
+  return new Promise((resolve, reject) => {
+    const request = https.request(target, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'content-length': Buffer.byteLength(payload)
+      },
+      timeout: 10_000
+    }, (response) => {
+      response.resume();
+      response.on('end', () => {
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          resolve();
+        } else {
+          reject(new Error(`Discord returned HTTP ${response.statusCode || 'unknown'}.`));
+        }
+      });
+      response.on('error', reject);
+    });
+
+    request.on('timeout', () => request.destroy(new Error('Discord webhook request timed out.')));
+    request.on('error', reject);
+    request.end(payload);
+  });
+}
+
+function readEnvironmentFile() {
+  try {
+    return Object.fromEntries(
+      fs.readFileSync(AUTH_FILE, 'utf8')
+        .split(/\r?\n/)
+        .filter((line) => line && !line.startsWith('#'))
+        .map((line) => {
+          const separator = line.indexOf('=');
+          return separator === -1
+            ? ['', '']
+            : [line.slice(0, separator), line.slice(separator + 1)];
+        })
+        .filter(([key]) => key)
+    );
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+    return {};
+  }
 }
 
 function credentialsMatch(username, password, config) {
@@ -324,10 +403,100 @@ function credentialsMatch(username, password, config) {
   return matches(username, config.username) && matches(password, config.password);
 }
 
-function createServer(authConfig = loadAuthConfig()) {
+function createServer(authConfig = loadAuthConfig(), options = {}) {
   const failedLogins = new Map();
+  const suggestionAttempts = new Map();
   return http.createServer(async (request, response) => {
     const requestUrl = new URL(request.url, `http://${HOST}:${PORT}`);
+
+    if (requestUrl.pathname === '/api/suggestions' && request.method === 'POST') {
+      const origin = request.headers.origin;
+      if (origin) {
+        let parsedOrigin;
+        try {
+          parsedOrigin = new URL(origin);
+        } catch {
+          sendJson(response, 403, { error: 'Suggestion requests must come from this site.' });
+          return;
+        }
+        if (
+          !['http:', 'https:'].includes(parsedOrigin.protocol) ||
+          parsedOrigin.host !== request.headers.host
+        ) {
+          sendJson(response, 403, { error: 'Suggestion requests must come from this site.' });
+          return;
+        }
+      }
+
+      if (!/^application\/json(?:\s*;|$)/i.test(request.headers['content-type'] || '')) {
+        sendJson(response, 415, { error: 'Submit suggestions as JSON.' });
+        return;
+      }
+
+      const webhookUrl = options.discordWebhookUrl || authConfig.discordWebhookUrl;
+      if (!webhookUrl) {
+        sendJson(response, 503, { error: 'Suggestions are not configured yet.' });
+        return;
+      }
+      if (!isDiscordWebhookUrl(webhookUrl)) {
+        sendJson(response, 503, { error: 'The suggestions destination is not configured correctly.' });
+        return;
+      }
+
+      const now = Date.now();
+      for (const [address, attempt] of suggestionAttempts) {
+        if (attempt.resetAt <= now) suggestionAttempts.delete(address);
+      }
+      const address = request.socket.remoteAddress || 'unknown';
+      const attempt = suggestionAttempts.get(address);
+      if (attempt && attempt.count >= SUGGESTION_RATE_LIMIT) {
+        sendJson(response, 429, { error: 'Too many suggestions. Please try again later.' });
+        return;
+      }
+
+      let submission;
+      try {
+        submission = await readJsonBody(request);
+      } catch (error) {
+        const tooLarge = error.message.includes('too large');
+        sendJson(response, tooLarge ? 413 : 400, {
+          error: tooLarge ? 'Suggestion is too large.' : 'Invalid suggestion request.'
+        });
+        return;
+      }
+
+      const allowedTypes = ['feature', 'bug', 'content'];
+      const type = typeof submission?.type === 'string' ? submission.type : '';
+      const title = typeof submission?.title === 'string' ? submission.title.trim() : '';
+      const details = typeof submission?.details === 'string' ? submission.details.trim() : '';
+      const name = typeof submission?.name === 'string' ? submission.name.trim() : '';
+      if (
+        !allowedTypes.includes(type) ||
+        title.length < 5 || title.length > 200 ||
+        details.length > 1000 ||
+        name.length > 50
+      ) {
+        sendJson(response, 400, { error: 'Check the suggestion type and field lengths, then try again.' });
+        return;
+      }
+
+      if (!attempt && suggestionAttempts.size >= 1000) {
+        suggestionAttempts.delete(suggestionAttempts.keys().next().value);
+      }
+      suggestionAttempts.set(address, {
+        count: (attempt?.count || 0) + 1,
+        resetAt: attempt?.resetAt || now + SUGGESTION_RATE_WINDOW_MS
+      });
+      try {
+        const send = options.sendDiscordWebhook || postDiscordWebhook;
+        await send(webhookUrl, { type, title, details, name });
+        sendJson(response, 200, { ok: true });
+      } catch (error) {
+        console.error(`Unable to deliver website suggestion to Discord: ${error.code || error.message}`);
+        sendJson(response, 502, { error: 'Could not deliver your suggestion right now. Please try again later.' });
+      }
+      return;
+    }
 
     if (request.method === 'POST' && requestUrl.pathname === '/api/login') {
       const origin = request.headers.origin;
@@ -407,11 +576,13 @@ function createServer(authConfig = loadAuthConfig()) {
     }
 
     if (requestUrl.pathname === '/health') {
+      const health = { status: 'ok', proxyPort: PORT };
+      if (options.scramjetPort) health.scramjetPort = options.scramjetPort;
       response.writeHead(200, {
         'content-type': 'application/json; charset=utf-8',
         'cache-control': 'no-store'
       });
-      response.end(JSON.stringify({ status: 'ok', proxyPort: PORT }));
+      response.end(JSON.stringify(health));
       return;
     }
 
@@ -472,7 +643,14 @@ function createServer(authConfig = loadAuthConfig()) {
       relativePath.startsWith('..') ||
       path.isAbsolute(relativePath) ||
       relativePath.split(path.sep).some((part) => part.startsWith('.')) ||
-      ['server.js', 'server.test.js'].includes(relativePath.toLowerCase())
+      [
+        'server.js',
+        'server.test.js',
+        'start.js',
+        'scramjet-server.mjs',
+        'scramjet-embed.html',
+        'scramjet-sw.js'
+      ].includes(relativePath.toLowerCase())
     ) {
       sendError(response, 404, 'Not found.');
       return;
@@ -511,6 +689,8 @@ if (require.main === module) {
 
 module.exports = {
   createServer,
+  isDiscordWebhookUrl,
+  normalizeDiscordWebhookUrl,
   isPublicAddress,
   normalizeTarget,
   proxyUrl,

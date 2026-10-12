@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Suggest an improvement or report an issue with SYSTEM_CORE.">
+  <title>SUGGEST A CHANGE | CORE_SEARCH</title>
+  <link href="style.css" rel="stylesheet" type="text/css">
+</head>
+<body class="search-dashboard search-subpage">
+  <canvas id="matrix-canvas"></canvas>
+  <nav class="navbar">
+    <button class="menu-toggle" id="mobile-menu" type="button" aria-label="Toggle navigation" aria-expanded="false">
+      <span class="bar"></span>
+      <span class="bar"></span>
+      <span class="bar"></span>
+    </button>
+    <ul class="nav-links">
+      <li><a href="main.html">SEARCH</a></li>
+      <li><a href="settings.html">SETTINGS</a></li>
+      <li><a href="suggestions.html" class="active">SUGGEST A CHANGE</a></li>
+    </ul>
+  </nav>
+
+  <main class="settings-page suggestions-page">
+    <a class="settings-back" href="main.html">&larr; BACK TO SEARCH</a>
+    <section class="settings-panel suggestions-panel">
+      <p class="search-kicker"><span class="online-indicator"></span> HELP IMPROVE SYSTEM_CORE</p>
+      <h1>SUGGEST A CHANGE</h1>
+      <p class="settings-description">Share a feature idea, report a problem, or suggest a content update. Captain Hook, our Discord webhook, will receive your submission and share it with us in our Discord server. Please don’t include personal or private information.</p>
+      <p class="theme-help suggestion-delivery-note">Submissions are sent to the maintainers’ Discord and require a server-side webhook configuration.</p>
+      <form id="suggestion-form">
+        <label class="settings-label" for="suggestion-type">SUGGESTION TYPE</label>
+        <select id="suggestion-type" name="type" required>
+          <option value="feature">Feature idea</option>
+          <option value="bug">Bug report</option>
+          <option value="content">Content change</option>
+        </select>
+
+        <label class="settings-label" for="suggestion-title">YOUR SUGGESTION</label>
+        <input class="settings-text-input" id="suggestion-title" name="title" type="text" minlength="5" maxlength="200" required>
+
+        <label class="settings-label" for="suggestion-details">DETAILS <span class="suggestion-optional">(OPTIONAL)</span></label>
+        <textarea class="settings-text-input suggestion-details" id="suggestion-details" name="details" maxlength="1000" rows="5" placeholder="Add steps, context, or what you would like to see."></textarea>
+
+        <label class="settings-label" for="suggestion-name">NAME <span class="suggestion-optional">(OPTIONAL)</span></label>
+        <input class="settings-text-input" id="suggestion-name" name="name" type="text" maxlength="50" autocomplete="name" placeholder="Anonymous">
+
+        <button class="settings-save" type="submit">SEND SUGGESTION</button>
+        <p class="settings-feedback" id="suggestion-feedback" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+    <footer class="site-update-note">
+      <span>LAST UPDATED: <time datetime="2026-10-12">OCTOBER 12, 2026</time></span>
+    </footer>
+  </main>
+
+  <script src="script.js"></script>
+  <script src="suggestions.js"></script>
+</body>
+</html>

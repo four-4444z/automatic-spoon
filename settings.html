@@ -7,10 +7,9 @@
   <title>SETTINGS | CORE_SEARCH</title>
   <link href="style.css" rel="stylesheet" type="text/css">
 </head>
-<body class="search-dashboard">
+<body class="search-dashboard search-subpage">
   <canvas id="matrix-canvas"></canvas>
   <nav class="navbar">
-    <a class="nav-logo" href="main.html">CORE_SEARCH</a>
     <button class="menu-toggle" id="mobile-menu" aria-label="Toggle navigation" aria-expanded="false">
       <span class="bar"></span>
       <span class="bar"></span>
@@ -18,9 +17,8 @@
     </button>
     <ul class="nav-links">
       <li><a href="main.html">SEARCH</a></li>
-      <li><a href="browser.html">BROWSER</a></li>
-      <li><a href="terminal.html">TERMINAL</a></li>
       <li><a href="settings.html" class="active">SETTINGS</a></li>
+      <li><a href="suggestions.html">SUGGEST</a></li>
     </ul>
   </nav>
 
@@ -93,6 +91,9 @@
         <p class="settings-feedback" id="settings-feedback" role="status" aria-live="polite"></p>
       </form>
     </section>
+    <footer class="site-update-note">
+      <span>LAST UPDATED: <time datetime="2026-10-12">OCTOBER 12, 2026</time></span>
+    </footer>
   </main>
 
   <script src="script.js"></script>

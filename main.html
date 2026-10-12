@@ -9,18 +9,34 @@
 </head>
 <body class="search-dashboard">
   <canvas id="matrix-canvas"></canvas>
+  <header class="dashboard-browser-chrome" id="dashboard-browser-chrome">
+    <div class="dashboard-browser-top">
+      <button class="dashboard-browser-home" id="dashboard-browser-home" type="button" aria-label="Focus CORE_SEARCH">CORE</button>
+      <div class="dashboard-browser-tabs" id="dashboard-browser-tabs" role="tablist" aria-label="Open browser tabs"></div>
+      <button class="dashboard-browser-new-tab" id="dashboard-browser-new-tab" type="button" aria-label="Open new tab" title="New tab">+</button>
+      <button class="dashboard-browser-clear-tabs" id="dashboard-browser-clear-tabs" type="button" aria-label="Clear all tabs" title="Clear all tabs">Clear all</button>
+      <button class="menu-toggle dashboard-browser-menu" id="mobile-menu" type="button" aria-label="Toggle navigation" aria-expanded="false" title="Navigation">
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+      </button>
+    </div>
+    <form class="dashboard-browser-address" id="dashboard-browser-address-form">
+      <label class="sr-only" for="dashboard-browser-address">Search or enter a website address</label>
+      <button class="dashboard-browser-nav-button" id="dashboard-browser-back" type="button" aria-label="Go back" title="Back" disabled>&larr;</button>
+      <button class="dashboard-browser-nav-button" id="dashboard-browser-forward" type="button" aria-label="Go forward" title="Forward" disabled>&rarr;</button>
+      <button class="dashboard-browser-nav-button" id="dashboard-browser-refresh" type="button" aria-label="Refresh page" title="Refresh" disabled>&#8635;</button>
+      <input id="dashboard-browser-address" type="text" placeholder="Search or enter website address" autocomplete="url" spellcheck="false" required>
+      <button type="submit">Go</button>
+    </form>
+    <p class="sr-only" id="dashboard-browser-status" role="status" aria-live="polite"></p>
+  </header>
+  <div class="dashboard-browser-view" id="dashboard-browser-view" aria-label="Browser tabs"></div>
   <nav class="navbar">
-    <a class="nav-logo" href="main.html">CORE_SEARCH</a>
-    <button class="menu-toggle" id="mobile-menu" aria-label="Toggle navigation" aria-expanded="false">
-      <span class="bar"></span>
-      <span class="bar"></span>
-      <span class="bar"></span>
-    </button>
     <ul class="nav-links">
       <li><a href="main.html" class="active">SEARCH</a></li>
-      <li><a href="browser.html">BROWSER</a></li>
-      <li><a href="terminal.html">TERMINAL</a></li>
       <li><a href="settings.html">SETTINGS</a></li>
+      <li><a href="suggestions.html">SUGGEST</a></li>
     </ul>
   </nav>
 
@@ -45,7 +61,26 @@
         >
         <button type="submit" class="search-submit" aria-label="Submit search">&rarr;</button>
       </form>
-      <p class="search-engine-note">SEARCHING WITH <a href="settings.html" id="active-search-engine">DUCKDUCKGO</a></p>
+      <section class="bookmark-section" aria-labelledby="bookmark-heading">
+        <div class="bookmark-heading">
+          <h2 id="bookmark-heading">BOOKMARKS</h2>
+          <button class="bookmark-add" id="bookmark-add" type="button" aria-expanded="false" aria-controls="bookmark-form">+ ADD</button>
+        </div>
+        <div class="bookmark-list" id="bookmark-list" aria-live="polite"></div>
+        <form class="bookmark-form" id="bookmark-form" hidden>
+          <label for="bookmark-name">NAME
+            <input id="bookmark-name" name="name" type="text" maxlength="32" autocomplete="off" required>
+          </label>
+          <label for="bookmark-url">WEBSITE
+            <input id="bookmark-url" name="url" type="text" inputmode="url" placeholder="https://example.com" autocomplete="url" required>
+          </label>
+          <button type="submit">SAVE</button>
+          <button id="bookmark-cancel" type="button">CANCEL</button>
+        </form>
+        <p class="bookmark-feedback" id="bookmark-feedback" role="status" aria-live="polite"></p>
+      </section>
+      <p class="search-engine-note">SEARCHING WITH <a href="settings.html" id="active-search-engine">DUCKDUCKGO</a> THROUGH SCRAMJET</p>
+      <p id="search-status" class="search-status" role="status" aria-live="polite"></p>
 
       <div class="search-suggestions" aria-label="Suggested searches">
         <span>TRY</span>
@@ -55,17 +90,7 @@
       </div>
     </section>
 
-    <section class="search-shortcuts" aria-label="SYSTEM SHORTCUTS">
-      <a class="shortcut-card" href="browser.html">
-        <span class="shortcut-icon">&nearr;</span>
-        <span><strong>WEB BROWSER</strong><small>Browse through the local proxy</small></span>
-        <span class="shortcut-arrow">&rarr;</span>
-      </a>
-      <a class="shortcut-card" href="terminal.html">
-        <span class="shortcut-icon">&gt;_</span>
-        <span><strong>COMMAND TERMINAL</strong><small>Open the system console</small></span>
-        <span class="shortcut-arrow">&rarr;</span>
-      </a>
+    <section class="search-shortcuts" aria-label="SETTINGS SHORTCUT">
       <a class="shortcut-card" href="settings.html">
         <span class="shortcut-icon">&#9881;</span>
         <span><strong>SETTINGS</strong><small>Choose search, color, appearance, and quick-exit preferences</small></span>
@@ -76,6 +101,7 @@
     <footer class="search-footer">
       <span>CORE_SEARCH <span class="footer-separator">/</span> SYSTEM READY</span>
       <span>POWERED BY YOUR CHOSEN SEARCH ENGINE</span>
+      <span class="site-update-note">LAST UPDATED: <time datetime="2026-10-12">OCTOBER 12, 2026</time></span>
     </footer>
   </main>
 

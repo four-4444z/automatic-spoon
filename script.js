@@ -1,15 +1,10 @@
-const terminalInput = document.getElementById('terminal-input');
-const terminalOutput = document.getElementById('terminal-output');
-const proxyForm = document.getElementById('proxy-form');
-const proxyUrlInput = document.getElementById('proxy-url');
-const proxyFrame = document.getElementById('proxy-frame');
-const proxyStatus = document.getElementById('proxy-status');
 const SEARCH_ENGINES = {
   duckduckgo: { label: 'DUCKDUCKGO', url: 'https://duckduckgo.com/?q=' },
   google: { label: 'GOOGLE', url: 'https://www.google.com/search?q=' },
   bing: { label: 'BING', url: 'https://www.bing.com/search?q=' }
 };
 const SEARCH_ENGINE_STORAGE_KEY = 'coreSearchEngine';
+const BOOKMARKS_STORAGE_KEY = 'coreSearchBookmarks';
 const THEME_COLOR_STORAGE_KEY = 'coreSearchThemeColor';
 const APPEARANCE_STORAGE_KEY = 'coreSearchAppearance';
 const PANIC_KEY_STORAGE_KEY = 'coreSearchPanicKey';
@@ -238,14 +233,445 @@ if (activeSearchEngine) {
   activeSearchEngine.textContent = engine.label;
 }
 
+function resolveSearchDestination(query) {
+  const hasScheme = /^[a-z][a-z\d+.-]*:\/\//i.test(query);
+  const looksLikeAddress = hasScheme || (!/\s/.test(query) && query.includes('.'));
+  if (looksLikeAddress) {
+    const target = new URL(hasScheme ? query : `https://${query}`);
+    if (!['http:', 'https:'].includes(target.protocol)) {
+      throw new Error('Only HTTP and HTTPS addresses can be opened.');
+    }
+    return target.href;
+  }
+
+  const engine = SEARCH_ENGINES[getSearchEngine()];
+  return `${engine.url}${encodeURIComponent(query)}`;
+}
+
+const browserChrome = document.getElementById('dashboard-browser-chrome');
+const browserTabsContainer = document.getElementById('dashboard-browser-tabs');
+const browserView = document.getElementById('dashboard-browser-view');
+const browserAddressForm = document.getElementById('dashboard-browser-address-form');
+const browserAddressInput = document.getElementById('dashboard-browser-address');
+const browserStatus = document.getElementById('dashboard-browser-status');
+const browserBackButton = document.getElementById('dashboard-browser-back');
+const browserForwardButton = document.getElementById('dashboard-browser-forward');
+const browserRefreshButton = document.getElementById('dashboard-browser-refresh');
+const clearBrowserTabsButton = document.getElementById('dashboard-browser-clear-tabs');
+const browserTabs = [];
+let activeBrowserTabId = null;
+let nextBrowserTabId = 0;
+let scramjetPort = null;
+let scramjetReady;
+
+function createScramjetEmbedUrl(destination) {
+  if (!scramjetPort) throw new Error('Start the embedded browser with: npm start');
+  return `http://127.0.0.1:${scramjetPort}/embed.html?url=${encodeURIComponent(destination)}`;
+}
+
+function updateBrowserNavigationControls() {
+  const tab = browserTabs.find(({ id }) => id === activeBrowserTabId);
+  browserBackButton.disabled = !tab || tab.historyIndex <= 0;
+  browserForwardButton.disabled = !tab || tab.historyIndex >= tab.history.length - 1;
+  browserRefreshButton.disabled = !tab || tab.historyIndex < 0;
+}
+
+function setActiveBrowserTab(tab) {
+  activeBrowserTabId = tab.id;
+  browserTabsContainer.querySelectorAll('[role="tab"]').forEach((button) => {
+    const selected = Number(button.dataset.tabId) === tab.id;
+    button.classList.toggle('is-active', selected);
+    button.setAttribute('aria-selected', String(selected));
+  });
+  browserAddressInput.value = tab.url || '';
+  browserTabs.forEach((browserTab) => {
+    if (browserTab.frame) {
+      browserTab.frame.hidden = browserTab.id !== tab.id;
+      browserTab.frame.setAttribute('aria-hidden', String(browserTab.id !== tab.id));
+    }
+  });
+  document.body.classList.toggle('is-browsing', Boolean(tab.url));
+  if (!tab.url) browserAddressInput.focus();
+  updateBrowserNavigationControls();
+}
+
+function createBrowserFrame(tab) {
+  const frame = document.createElement('iframe');
+  frame.className = 'dashboard-browser-frame';
+  frame.title = tab.label;
+  frame.hidden = true;
+  frame.setAttribute('aria-hidden', 'true');
+  frame.setAttribute('sandbox', 'allow-downloads allow-forms allow-popups allow-same-origin allow-scripts allow-top-navigation-by-user-activation');
+  frame.referrerPolicy = 'no-referrer';
+  tab.frame = frame;
+  browserView.appendChild(frame);
+  return frame;
+}
+
+function renderBrowserTabs() {
+  browserTabsContainer.replaceChildren();
+  browserTabs.forEach((tab) => {
+    const item = document.createElement('div');
+    item.className = 'dashboard-browser-tab-item';
+    item.setAttribute('role', 'presentation');
+    const button = document.createElement('button');
+    button.className = 'dashboard-browser-tab';
+    button.type = 'button';
+    button.setAttribute('role', 'tab');
+    button.setAttribute('aria-selected', String(tab.id === activeBrowserTabId));
+    button.dataset.tabId = String(tab.id);
+    button.textContent = tab.label;
+    if (tab.id === activeBrowserTabId) button.classList.add('is-active');
+    button.addEventListener('click', () => setActiveBrowserTab(tab));
+    item.appendChild(button);
+
+    const close = document.createElement('button');
+    close.className = 'dashboard-browser-tab-close';
+    close.type = 'button';
+    close.setAttribute('aria-label', `Close ${tab.label}`);
+    close.textContent = '×';
+    close.addEventListener('click', () => {
+      tab.frame?.remove();
+      const index = browserTabs.indexOf(tab);
+      if (index !== -1) browserTabs.splice(index, 1);
+      if (activeBrowserTabId === tab.id) {
+        if (browserTabs.length) setActiveBrowserTab(browserTabs[Math.max(0, index - 1)]);
+        else {
+          activeBrowserTabId = null;
+          document.body.classList.remove('is-browsing');
+          browserAddressInput.value = '';
+        }
+      }
+      renderBrowserTabs();
+      updateBrowserNavigationControls();
+    });
+    item.appendChild(close);
+    browserTabsContainer.appendChild(item);
+  });
+}
+
+function addBrowserTab(label = 'New Tab') {
+  const tab = { id: nextBrowserTabId++, label, frame: null, url: '', history: [], historyIndex: -1 };
+  browserTabs.push(tab);
+  createBrowserFrame(tab);
+  browserChrome.hidden = false;
+  document.body.classList.add('has-browser-controls');
+  renderBrowserTabs();
+  setActiveBrowserTab(tab);
+  return tab;
+}
+
+const initialBrowserTab = {
+  id: nextBrowserTabId++,
+  label: 'New Tab',
+  frame: null,
+  url: '',
+  history: [],
+  historyIndex: -1
+};
+if (browserChrome) {
+  browserTabs.push(initialBrowserTab);
+  createBrowserFrame(initialBrowserTab);
+  activeBrowserTabId = initialBrowserTab.id;
+  renderBrowserTabs();
+  updateBrowserNavigationControls();
+}
+
+clearBrowserTabsButton?.addEventListener('click', () => {
+  browserTabs.forEach((tab) => tab.frame?.remove());
+  browserTabs.length = 0;
+  activeBrowserTabId = null;
+  document.body.classList.remove('is-browsing');
+  browserAddressInput.value = '';
+  browserStatus.textContent = 'All tabs cleared.';
+  renderBrowserTabs();
+  updateBrowserNavigationControls();
+});
+
+async function openWithScramjet(query, tab, historyIndex = null) {
+  const destination = resolveSearchDestination(query);
+  browserStatus.textContent = 'Opening embedded browser...';
+  try {
+    await scramjetReady;
+    if (!scramjetPort) throw new Error('Start both services with: npm start');
+    if (!browserTabs.includes(tab)) throw new Error('This browser tab was closed.');
+    tab.label = new URL(destination).hostname;
+    tab.url = destination;
+    tab.sessionUrl = createScramjetEmbedUrl(destination);
+    if (historyIndex === null) {
+      tab.history = tab.history.slice(0, tab.historyIndex + 1);
+      tab.history.push(destination);
+      tab.historyIndex = tab.history.length - 1;
+    } else {
+      tab.historyIndex = historyIndex;
+    }
+    tab.frame.title = tab.label;
+    tab.frame.src = tab.sessionUrl;
+    renderBrowserTabs();
+    setActiveBrowserTab(tab);
+    updateBrowserNavigationControls();
+    browserStatus.textContent = `Opened ${destination} in an embedded browser tab.`;
+  } catch (error) {
+    browserStatus.textContent = error.message;
+    throw error;
+  }
+}
+
+const bookmarkList = document.getElementById('bookmark-list');
+const bookmarkForm = document.getElementById('bookmark-form');
+const bookmarkAddButton = document.getElementById('bookmark-add');
+const bookmarkFeedback = document.getElementById('bookmark-feedback');
+
+function normalizeBookmarkUrl(value) {
+  const input = value.trim();
+  const url = new URL(input.includes('://') ? input : `https://${input}`);
+  if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) {
+    throw new Error('Bookmarks must use a public HTTP or HTTPS address.');
+  }
+  return url.href;
+}
+
+function getSavedBookmarks() {
+  const stored = localStorage.getItem(BOOKMARKS_STORAGE_KEY);
+  if (!stored) return [];
+  try {
+    const bookmarks = JSON.parse(stored);
+    if (!Array.isArray(bookmarks)) throw new Error('Saved bookmarks are not a list.');
+    return bookmarks.filter((bookmark) =>
+      bookmark &&
+      typeof bookmark.name === 'string' &&
+      bookmark.name.trim().length > 0 &&
+      bookmark.name.length <= 32 &&
+      typeof bookmark.url === 'string' &&
+      bookmark.url.length <= 2048 &&
+      (() => {
+        try {
+          return normalizeBookmarkUrl(bookmark.url) === bookmark.url;
+        } catch {
+          return false;
+        }
+      })()
+    ).slice(0, 16);
+  } catch {
+    bookmarkFeedback.textContent = 'Saved bookmarks could not be read. Adding a new bookmark will replace the damaged list.';
+    return [];
+  }
+}
+
+let bookmarks = bookmarkList ? getSavedBookmarks() : [];
+
+function saveBookmarks() {
+  try {
+    localStorage.setItem(BOOKMARKS_STORAGE_KEY, JSON.stringify(bookmarks));
+    return true;
+  } catch {
+    bookmarkFeedback.textContent = 'Bookmarks could not be saved in this browser.';
+    return false;
+  }
+}
+
+function renderBookmarks() {
+  if (!bookmarkList) return;
+  bookmarkList.replaceChildren();
+  if (bookmarks.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'bookmark-empty';
+    empty.textContent = 'Your saved sites will appear here.';
+    bookmarkList.appendChild(empty);
+    return;
+  }
+
+  bookmarks.forEach((bookmark, index) => {
+    const item = document.createElement('div');
+    item.className = 'bookmark-item';
+    const openButton = document.createElement('button');
+    openButton.className = 'bookmark-link';
+    openButton.type = 'button';
+    openButton.textContent = bookmark.name;
+    openButton.title = bookmark.url;
+    openButton.addEventListener('click', async () => {
+      let tab = browserTabs.find(({ id }) => id === activeBrowserTabId);
+      if (!tab) tab = addBrowserTab();
+      try {
+        await openWithScramjet(bookmark.url, tab);
+      } catch (error) {
+        bookmarkFeedback.textContent = error.message || 'Could not open this bookmark.';
+      }
+    });
+
+    const removeButton = document.createElement('button');
+    removeButton.className = 'bookmark-remove';
+    removeButton.type = 'button';
+    removeButton.setAttribute('aria-label', `Remove bookmark ${bookmark.name}`);
+    removeButton.textContent = '×';
+    removeButton.addEventListener('click', () => {
+      bookmarks.splice(index, 1);
+      if (!saveBookmarks()) {
+        bookmarks.splice(index, 0, bookmark);
+        return;
+      }
+      renderBookmarks();
+      bookmarkFeedback.textContent = `${bookmark.name} removed.`;
+    });
+    item.append(openButton, removeButton);
+    bookmarkList.appendChild(item);
+  });
+}
+
+bookmarkAddButton?.addEventListener('click', () => {
+  const isOpen = !bookmarkForm.hidden;
+  bookmarkForm.hidden = isOpen;
+  bookmarkAddButton.setAttribute('aria-expanded', String(!isOpen));
+  bookmarkFeedback.textContent = '';
+  if (!isOpen) document.getElementById('bookmark-name').focus();
+});
+
+document.getElementById('bookmark-cancel')?.addEventListener('click', () => {
+  bookmarkForm.reset();
+  bookmarkForm.hidden = true;
+  bookmarkAddButton.setAttribute('aria-expanded', 'false');
+  bookmarkFeedback.textContent = '';
+});
+
+bookmarkForm?.addEventListener('submit', (event) => {
+  event.preventDefault();
+  const formData = new FormData(bookmarkForm);
+  const name = String(formData.get('name') || '').trim();
+  let url;
+  try {
+    url = normalizeBookmarkUrl(String(formData.get('url') || ''));
+  } catch {
+    bookmarkFeedback.textContent = 'Enter a valid HTTP or HTTPS website address.';
+    return;
+  }
+  if (!name || name.length > 32) {
+    bookmarkFeedback.textContent = 'Enter a bookmark name with up to 32 characters.';
+    return;
+  }
+  if (bookmarks.length >= 16) {
+    bookmarkFeedback.textContent = 'You can save up to 16 bookmarks.';
+    return;
+  }
+  if (bookmarks.some((bookmark) => bookmark.url === url)) {
+    bookmarkFeedback.textContent = 'That website is already bookmarked.';
+    return;
+  }
+
+  bookmarks.push({ name, url });
+  if (!saveBookmarks()) {
+    bookmarks.pop();
+    return;
+  }
+  renderBookmarks();
+  bookmarkForm.reset();
+  bookmarkForm.hidden = true;
+  bookmarkAddButton.setAttribute('aria-expanded', 'false');
+  bookmarkFeedback.textContent = `${name} added to bookmarks.`;
+});
+
+renderBookmarks();
+
+async function moveBrowserHistory(delta) {
+  const tab = browserTabs.find(({ id }) => id === activeBrowserTabId);
+  if (!tab) return;
+  const nextIndex = tab.historyIndex + delta;
+  if (nextIndex < 0 || nextIndex >= tab.history.length) return;
+  try {
+    await openWithScramjet(tab.history[nextIndex], tab, nextIndex);
+  } catch (error) {
+    browserStatus.textContent = error.message;
+    browserAddressInput.focus();
+  }
+}
+
+browserBackButton?.addEventListener('click', () => moveBrowserHistory(-1));
+browserForwardButton?.addEventListener('click', () => moveBrowserHistory(1));
+browserRefreshButton?.addEventListener('click', async () => {
+  const tab = browserTabs.find(({ id }) => id === activeBrowserTabId);
+  if (!tab || tab.historyIndex < 0) return;
+  try {
+    await openWithScramjet(tab.history[tab.historyIndex], tab, tab.historyIndex);
+  } catch (error) {
+    browserStatus.textContent = error.message;
+    browserAddressInput.focus();
+  }
+});
+
+document.getElementById('dashboard-browser-home')?.addEventListener('click', () => {
+  document.getElementById('search-query')?.focus();
+  document.querySelector('.search-home')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+document.getElementById('dashboard-browser-new-tab')?.addEventListener('click', () => {
+  addBrowserTab();
+});
+
+browserAddressForm?.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const query = browserAddressInput.value.trim();
+  if (!query) return;
+  let tab = browserTabs.find(({ id }) => id === activeBrowserTabId);
+  if (!tab) tab = addBrowserTab();
+  const submitButton = browserAddressForm.querySelector('button[type="submit"]');
+  submitButton.disabled = true;
+  try {
+    await openWithScramjet(query, tab);
+  } catch (error) {
+    browserStatus.textContent = error.message;
+    browserAddressInput.focus();
+  } finally {
+    submitButton.disabled = false;
+  }
+});
+
+scramjetReady = fetch('/health')
+    .then((response) => {
+      if (!response.ok) throw new Error('The local backend is unavailable.');
+      return response.json();
+    })
+    .then(({ scramjetPort: port }) => {
+      if (!Number.isInteger(port) || port < 1 || port > 65535) {
+        throw new Error('The local Scramjet service is unavailable.');
+      }
+      scramjetPort = port;
+      return port;
+    })
+    .catch((error) => {
+      if (browserStatus) browserStatus.textContent = error.message;
+      return null;
+    });
+
 if (searchForm) {
   const searchQuery = document.getElementById('search-query');
-  searchForm.addEventListener('submit', (event) => {
+  const searchButton = searchForm.querySelector('button[type="submit"]');
+  const searchStatus = document.getElementById('search-status');
+  searchForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     const query = searchQuery.value.trim();
     if (!query) return;
-    const engine = SEARCH_ENGINES[getSearchEngine()];
-    window.open(`${engine.url}${encodeURIComponent(query)}`, '_blank', 'noopener,noreferrer');
+
+    let destination;
+    try {
+      destination = resolveSearchDestination(query);
+    } catch (error) {
+      searchStatus.textContent = error.message || 'Enter a valid website address or search term.';
+      return;
+    }
+
+    searchButton.disabled = true;
+    searchStatus.textContent = 'Opening the embedded browser...';
+    const activeTab = browserTabs.find(({ id }) => id === activeBrowserTabId);
+    const tab = activeTab && activeTab.historyIndex < 0
+      ? activeTab
+      : addBrowserTab(new URL(destination).hostname);
+    try {
+      await openWithScramjet(query, tab);
+      searchStatus.textContent = 'Your site opened in an embedded browser tab.';
+      searchButton.disabled = false;
+    } catch (error) {
+      searchStatus.textContent = error.message;
+      searchButton.disabled = false;
+    }
   });
 
   document.querySelectorAll('[data-search]').forEach((suggestion) => {
@@ -253,116 +679,6 @@ if (searchForm) {
       searchQuery.value = suggestion.dataset.search;
       searchForm.requestSubmit();
     });
-  });
-}
-
-function openProxyUrl(value) {
-  if (!proxyFrame || !proxyUrlInput || !proxyStatus) return false;
-
-  let target;
-  try {
-    target = new URL(value.includes('://') ? value : `https://${value}`);
-  } catch {
-    proxyStatus.textContent = 'Enter a valid HTTP or HTTPS URL.';
-    return false;
-  }
-
-  if (!['http:', 'https:'].includes(target.protocol)) {
-    proxyStatus.textContent = 'Only HTTP and HTTPS websites are supported.';
-    return false;
-  }
-
-  proxyUrlInput.value = target.href;
-  proxyStatus.textContent = `Loading ${target.href}`;
-  proxyFrame.src = `/proxy?url=${encodeURIComponent(target.href)}`;
-  return true;
-}
-
-if (proxyForm && proxyUrlInput && proxyStatus) {
-  proxyForm.addEventListener('submit', (event) => {
-    event.preventDefault();
-    openProxyUrl(proxyUrlInput.value.trim());
-  });
-
-  fetch('/health')
-    .then((response) => {
-      if (!response.ok) throw new Error('Local server is unavailable.');
-      return response.json();
-    })
-    .then(({ proxyPort }) => {
-      proxyStatus.textContent = `Local proxy ready on port ${proxyPort}. Public HTTP and HTTPS sites only.`;
-    })
-    .catch(() => {
-      proxyStatus.textContent = 'Start the local backend with: node server.js';
-    });
-}
-
-if (proxyFrame && proxyStatus) {
-  window.addEventListener('message', (event) => {
-    if (event.source !== proxyFrame.contentWindow) return;
-    if (!event.data || event.data.type !== 'system-core-navigate') return;
-    if (typeof event.data.url !== 'string') return;
-    if (!openProxyUrl(event.data.url)) return;
-    if (terminalOutput) {
-      const response = document.createElement('p');
-      response.textContent = '> FOLLOWING LINK THROUGH THE LOCAL PROXY.';
-      terminalOutput.appendChild(response);
-    }
-  });
-}
-
-if (terminalInput && terminalOutput) {
-  terminalInput.addEventListener('keydown', (event) => {
-    if (event.key !== 'Enter') return;
-
-    const input = terminalInput.value.trim();
-    const [command, ...args] = input.split(/\s+/);
-    const response = document.createElement('p');
-    const entry = document.createElement('p');
-    entry.textContent = `guest@core:~$ ${input}`;
-    terminalOutput.appendChild(entry);
-
-    if (command === 'clear') {
-      terminalOutput.replaceChildren();
-    } else if (command === 'help') {
-      response.textContent = '> COMMANDS: help, clear, open <https://url>, proxy <https://url>';
-      terminalOutput.appendChild(response);
-    } else if (command === 'proxy') {
-      if (openProxyUrl(args.join(' '))) {
-        response.textContent = '> OPENING SITE THROUGH THE LOCAL PROXY.';
-        terminalOutput.appendChild(response);
-      } else if (!proxyFrame) {
-        response.textContent = '> PROXY BROWSING IS ONLY AVAILABLE ON THE WEB PROXY PAGE.';
-        terminalOutput.appendChild(response);
-      } else {
-        response.textContent = `> ${proxyStatus.textContent}`;
-        terminalOutput.appendChild(response);
-      }
-    } else if (command === 'open') {
-      const address = args.join(' ');
-      let url;
-      try {
-        url = new URL(address.includes('://') ? address : `https://${address}`);
-      } catch {
-        response.textContent = '> ERROR: ENTER A VALID HTTP OR HTTPS URL.';
-        terminalOutput.appendChild(response);
-      }
-
-      if (url && (url.protocol === 'https:' || url.protocol === 'http:')) {
-        window.open(url.href, '_blank', 'noopener,noreferrer');
-        response.textContent = `> OPENING ${url.href}`;
-        terminalOutput.appendChild(response);
-      } else if (url) {
-        response.textContent = '> ERROR: ONLY HTTP AND HTTPS LINKS CAN BE OPENED.';
-        terminalOutput.appendChild(response);
-      }
-    } else if (input) {
-      response.textContent = `> UNKNOWN COMMAND: ${input}. TYPE 'help' FOR COMMANDS.`;
-      terminalOutput.appendChild(response);
-    }
-
-    terminalInput.value = '';
-    terminalOutput.scrollTop = terminalOutput.scrollHeight;
   });
 }
 
