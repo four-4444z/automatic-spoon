@@ -1,12 +1,20 @@
 # SYSTEM_CORE
 
-SYSTEM_CORE is a static website built with HTML, CSS, and vanilla JavaScript. It has no server-side runtime, backend API, build step, or package dependencies.
+SYSTEM_CORE is a static website built with HTML, CSS, and vanilla JavaScript, with an optional local Node.js backend for proxy browsing.
 
-## Run locally
+## Run the site and local proxy
 
-Open this folder in VS Code and use a static web server extension such as Live Server, or start any local HTTP server from the project folder. Then open `index.html` through that server.
+Install Node.js 18 or newer, open a terminal in the project folder, and run:
 
-Some browser features, including storage and embedded media, may behave differently when opening HTML files directly with a `file://` URL.
+```sh
+node server.js
+```
+
+Open `http://127.0.0.1:5000` and choose **Browser** for an address bar, back/forward, reload, and home controls. The Terminal page also has a basic proxy viewer. Both browse public HTTP/HTTPS sites through the local proxy. Set `PORT` to use a different port, for example `PORT=8080 node server.js` (PowerShell: `$env:PORT=8080; node server.js`).
+
+The backend listens only on `127.0.0.1`; it is not exposed to the internet or your local network. For safety, the proxy allows only standard HTTP/HTTPS ports, blocks private or reserved IP addresses, follows and revalidates redirects, and limits upstream responses to 12 MB. It supports GET/HEAD browsing; sites that require logins, POST requests, scripts with cross-origin assumptions, or unrestricted cookies may not work. Proxied pages run in a sandboxed frame that prevents them from accessing this site's pages.
+
+Opening the HTML files through a static server or GitHub Pages will not start the backend. The proxy page requires `node server.js` running on the same computer and is intended for local use only.
 
 ## Publish with GitHub Pages
 
@@ -15,8 +23,8 @@ Some browser features, including storage and embedded media, may behave differen
 3. Choose **Deploy from a branch**, select the branch containing the site and the repository root (`/`), then save.
 4. GitHub Pages publishes `index.html` as the site entry point.
 
-All internal page links use relative paths so they work both at the repository root and under a GitHub Pages project-site path.
+The static pages continue to work on GitHub Pages, but the backend-powered Browser and proxy viewer require the local Node.js server and are not hosted by GitHub Pages.
 
 ## Static-site limitations
 
-GitHub Pages only hosts static files. It cannot run private server logic, proxy external websites, or securely protect pages with client-side passwords. The portal login and vault are front-end demonstrations, not access controls. External services may block embedding or require their own sign-in; links to those services open outside this site.
+GitHub Pages only hosts static files. It cannot run the proxy backend or securely protect pages with client-side passwords. The portal login and vault are front-end demonstrations, not access controls. External services may block proxy browsing or require their own sign-in.

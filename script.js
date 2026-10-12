@@ -12,6 +12,65 @@ let isPermanentlyBlocked = localStorage.getItem('isPermanentlyBlocked') === 'tru
 
 const terminalInput = document.getElementById('terminal-input');
 const terminalOutput = document.getElementById('terminal-output');
+const proxyForm = document.getElementById('proxy-form');
+const proxyUrlInput = document.getElementById('proxy-url');
+const proxyFrame = document.getElementById('proxy-frame');
+const proxyStatus = document.getElementById('proxy-status');
+
+function openProxyUrl(value) {
+  if (!proxyFrame || !proxyUrlInput || !proxyStatus) return false;
+
+  let target;
+  try {
+    target = new URL(value.includes('://') ? value : `https://${value}`);
+  } catch {
+    proxyStatus.textContent = 'Enter a valid HTTP or HTTPS URL.';
+    return false;
+  }
+
+  if (!['http:', 'https:'].includes(target.protocol)) {
+    proxyStatus.textContent = 'Only HTTP and HTTPS websites are supported.';
+    return false;
+  }
+
+  proxyUrlInput.value = target.href;
+  proxyStatus.textContent = `Loading ${target.href}`;
+  proxyFrame.src = `/proxy?url=${encodeURIComponent(target.href)}`;
+  return true;
+}
+
+if (proxyForm && proxyUrlInput && proxyStatus) {
+  proxyForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    openProxyUrl(proxyUrlInput.value.trim());
+  });
+
+  fetch('/health')
+    .then((response) => {
+      if (!response.ok) throw new Error('Local server is unavailable.');
+      return response.json();
+    })
+    .then(({ proxyPort }) => {
+      proxyStatus.textContent = `Local proxy ready on port ${proxyPort}. Public HTTP and HTTPS sites only.`;
+    })
+    .catch(() => {
+      proxyStatus.textContent = 'Start the local backend with: node server.js';
+    });
+}
+
+if (proxyFrame && proxyStatus) {
+  window.addEventListener('message', (event) => {
+    if (event.source !== proxyFrame.contentWindow) return;
+    if (!event.data || event.data.type !== 'system-core-navigate') return;
+    if (typeof event.data.url !== 'string') return;
+    if (!openProxyUrl(event.data.url)) return;
+    if (terminalOutput) {
+      const response = document.createElement('p');
+      response.textContent = '> FOLLOWING LINK THROUGH THE LOCAL PROXY.';
+      terminalOutput.appendChild(response);
+    }
+  });
+}
 
 if (terminalInput && terminalOutput) {
   terminalInput.addEventListener('keydown', (event) => {
@@ -27,8 +86,19 @@ if (terminalInput && terminalOutput) {
     if (command === 'clear') {
       terminalOutput.replaceChildren();
     } else if (command === 'help') {
-      response.textContent = '> COMMANDS: help, clear, open <https://url>';
+      response.textContent = '> COMMANDS: help, clear, open <https://url>, proxy <https://url>';
       terminalOutput.appendChild(response);
+    } else if (command === 'proxy') {
+      if (openProxyUrl(args.join(' '))) {
+        response.textContent = '> OPENING SITE THROUGH THE LOCAL PROXY.';
+        terminalOutput.appendChild(response);
+      } else if (!proxyFrame) {
+        response.textContent = '> PROXY BROWSING IS ONLY AVAILABLE ON THE WEB PROXY PAGE.';
+        terminalOutput.appendChild(response);
+      } else {
+        response.textContent = `> ${proxyStatus.textContent}`;
+        terminalOutput.appendChild(response);
+      }
     } else if (command === 'open') {
       const address = args.join(' ');
       let url;

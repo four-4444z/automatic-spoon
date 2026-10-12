@@ -18,6 +18,7 @@
     <ul class="nav-links">
       <li><a href="main.html">DASHBOARD</a></li>
       <li><a href="terminal.html">TERMINAL</a></li>
+      <li><a href="browser.html">BROWSER</a></li>
       <li><a href="youtube.html">YOUTUBE</a></li>
       <li><a href="chat.html">CHAT</a></li>
       <li><a href="strongdog.html">STRONGDOG</a></li>
@@ -42,6 +43,22 @@
         <label class="prompt" for="terminal-input">guest@core:~$</label>
         <input type="text" id="terminal-input" aria-label="Terminal command" autocomplete="off" autofocus>
       </div>
+      <section class="unblocker-interface" aria-label="Web proxy">
+        <form class="input-group" id="proxy-form">
+          <label class="sr-only" for="proxy-url">Website URL</label>
+          <input id="proxy-url" type="url" placeholder="https://example.com" required>
+          <button type="submit">Browse</button>
+        </form>
+        <p id="proxy-status" role="status">Local proxy status: checking...</p>
+        <div class="proxy-frame-container">
+          <iframe
+            id="proxy-frame"
+            title="Proxied website"
+            sandbox="allow-forms allow-scripts"
+            referrerpolicy="no-referrer"
+          ></iframe>
+        </div>
+      </section>
     </div>
   </div>
 
