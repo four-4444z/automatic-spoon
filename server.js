@@ -393,7 +393,7 @@ function createServer(authConfig = loadAuthConfig()) {
         return;
       }
       response.writeHead(303, {
-        'location': '/index.html',
+        'location': '/main.html',
         'cache-control': 'no-store',
         'set-cookie': `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`
       });
@@ -424,27 +424,8 @@ function createServer(authConfig = loadAuthConfig()) {
     }
     const routePath = requestedPath || '/';
     const normalizedRoutePath = routePath.toLowerCase();
-    const authenticated = hasValidSession(request, authConfig);
-    if (
-      (normalizedRoutePath === '/' || normalizedRoutePath === '/index.html') &&
-      authenticated
-    ) {
+    if (normalizedRoutePath === '/' || normalizedRoutePath === '/index.html') {
       response.writeHead(302, { location: '/main.html', 'cache-control': 'no-store' });
-      response.end();
-      return;
-    }
-
-    if (
-      normalizedRoutePath !== '/' &&
-      normalizedRoutePath !== '/index.html' &&
-      (normalizedRoutePath.endsWith('.html') || normalizedRoutePath === '/proxy') &&
-      !authenticated
-    ) {
-      const next = `${routePath}${requestUrl.search}`;
-      response.writeHead(302, {
-        location: `/index.html?next=${encodeURIComponent(next)}`,
-        'cache-control': 'no-store'
-      });
       response.end();
       return;
     }

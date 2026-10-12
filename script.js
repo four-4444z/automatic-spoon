@@ -12,7 +12,15 @@ const SEARCH_ENGINES = {
 const SEARCH_ENGINE_STORAGE_KEY = 'coreSearchEngine';
 const THEME_COLOR_STORAGE_KEY = 'coreSearchThemeColor';
 const APPEARANCE_STORAGE_KEY = 'coreSearchAppearance';
+const PANIC_KEY_STORAGE_KEY = 'coreSearchPanicKey';
+const PANIC_URL_STORAGE_KEY = 'coreSearchPanicUrl';
 const DEFAULT_THEME_COLOR = '#61f99b';
+
+function normalizePanicKey(key) {
+  return key === ' ' ? 'space' : key.toLowerCase();
+}
+
+let isCapturingPanicKey = false;
 
 function resolveAppearance(preference) {
   if (preference === 'light' || preference === 'dark') return preference;
@@ -46,14 +54,23 @@ window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', ()
   if (getSavedAppearance() === 'system') applyTheme(getSavedThemeColor(), 'system');
 });
 
-const themeForm = document.getElementById('theme-form');
-if (themeForm) {
+const searchSettingsForm = document.getElementById('search-settings-form');
+if (searchSettingsForm) {
+  const engineSelect = document.getElementById('search-engine');
   const hexInput = document.getElementById('theme-hex');
   const colorPicker = document.getElementById('theme-color-picker');
-  const themeFeedback = document.getElementById('theme-feedback');
+  const panicUrlInput = document.getElementById('panic-url');
+  const panicKeyInput = document.getElementById('panic-key');
+  const panicCaptureButton = document.getElementById('panic-capture');
+  const panicClearButton = document.getElementById('panic-clear');
+  const panicCaptureStatus = document.getElementById('panic-capture-status');
+  const settingsFeedback = document.getElementById('settings-feedback');
   const savedColor = getSavedThemeColor();
+  engineSelect.value = getSearchEngine();
   hexInput.value = savedColor;
   colorPicker.value = savedColor;
+  panicUrlInput.value = localStorage.getItem(PANIC_URL_STORAGE_KEY) || '';
+  panicKeyInput.value = localStorage.getItem(PANIC_KEY_STORAGE_KEY) || '';
   document.querySelector(`input[name="appearance"][value="${getSavedAppearance()}"]`).checked = true;
   updateThemeSwatches(savedColor);
 
@@ -83,24 +100,131 @@ if (themeForm) {
     }
   });
 
-  themeForm.addEventListener('submit', (event) => {
+  panicCaptureButton.addEventListener('click', () => {
+    isCapturingPanicKey = !isCapturingPanicKey;
+    panicCaptureButton.textContent = isCapturingPanicKey ? 'CANCEL' : 'SET KEY';
+    panicCaptureStatus.textContent = isCapturingPanicKey
+      ? 'Press one unmodified key to use as your shortcut.'
+      : 'Key capture cancelled.';
+  });
+
+  panicClearButton.addEventListener('click', () => {
+    panicKeyInput.value = '';
+    isCapturingPanicKey = false;
+    panicCaptureButton.textContent = 'SET KEY';
+    panicCaptureStatus.textContent = 'Panic key cleared. Save settings to confirm.';
+  });
+
+  panicUrlInput.addEventListener('input', () => panicUrlInput.setCustomValidity(''));
+
+  searchSettingsForm.addEventListener('submit', (event) => {
     event.preventDefault();
-    const color = hexInput.value.trim();
+    const color = hexInput.value.trim().toLowerCase();
     if (!/^#[0-9a-fA-F]{6}$/.test(color)) {
       hexInput.setCustomValidity('Enter a hex color like #61f99b.');
       hexInput.reportValidity();
       return;
     }
 
-    const appearance = themeForm.elements.appearance.value;
-    if (!['dark', 'light', 'system'].includes(appearance)) return;
-    localStorage.setItem(THEME_COLOR_STORAGE_KEY, color.toLowerCase());
+    if (!Object.hasOwn(SEARCH_ENGINES, engineSelect.value)) {
+      settingsFeedback.textContent = 'Choose a valid search engine.';
+      return;
+    }
+    const appearance = searchSettingsForm.elements.appearance.value;
+    if (!['dark', 'light', 'system'].includes(appearance)) {
+      settingsFeedback.textContent = 'Choose a valid appearance.';
+      return;
+    }
+
+    let panicUrl = panicUrlInput.value.trim();
+    if (panicUrl) {
+      try {
+        const parsedUrl = new URL(panicUrl.includes('://') ? panicUrl : `https://${panicUrl}`);
+        if (!['http:', 'https:'].includes(parsedUrl.protocol)) throw new Error();
+        panicUrl = parsedUrl.href;
+      } catch {
+        panicUrlInput.setCustomValidity('Enter a valid HTTP or HTTPS destination.');
+        panicUrlInput.reportValidity();
+        return;
+      }
+    }
+
+    const panicKey = panicKeyInput.value;
+    if (panicKey && panicKey.length !== 1 && !/^F(?:[1-9]|1[0-2])$/.test(panicKey)) {
+      panicCaptureStatus.textContent = 'Choose a printable key or function key F1–F12.';
+      return;
+    }
+
+    localStorage.setItem(SEARCH_ENGINE_STORAGE_KEY, engineSelect.value);
+    localStorage.setItem(THEME_COLOR_STORAGE_KEY, color);
     localStorage.setItem(APPEARANCE_STORAGE_KEY, appearance);
+    localStorage.setItem(PANIC_KEY_STORAGE_KEY, panicKey);
+    localStorage.setItem(PANIC_URL_STORAGE_KEY, panicUrl);
     applyTheme(color, appearance);
     updateThemeSwatches(color);
-    themeFeedback.textContent = `THEME APPLIED · ${color.toUpperCase()} · ${appearance.toUpperCase()} APPEARANCE`;
+    panicUrlInput.value = panicUrl;
+    settingsFeedback.textContent = 'SETTINGS SAVED.';
   });
 }
+
+window.addEventListener('keydown', (event) => {
+  if (isCapturingPanicKey) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.key === 'Escape') {
+      isCapturingPanicKey = false;
+      const captureButton = document.getElementById('panic-capture');
+      const captureStatus = document.getElementById('panic-capture-status');
+      if (captureButton) captureButton.textContent = 'SET KEY';
+      if (captureStatus) captureStatus.textContent = 'Key capture cancelled.';
+      return;
+    }
+    if (event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) {
+      const captureStatus = document.getElementById('panic-capture-status');
+      if (captureStatus) captureStatus.textContent = 'Use a key without Ctrl, Alt, Shift, or Meta.';
+      return;
+    }
+    const capturedKey = event.key === ' ' ? 'Space' : event.key;
+    if (capturedKey.length !== 1 && !/^F(?:[1-9]|1[0-2])$/.test(capturedKey)) {
+      const captureStatus = document.getElementById('panic-capture-status');
+      if (captureStatus) captureStatus.textContent = 'Choose a printable key or function key F1–F12.';
+      return;
+    }
+    const keyInput = document.getElementById('panic-key');
+    const captureButton = document.getElementById('panic-capture');
+    const captureStatus = document.getElementById('panic-capture-status');
+    if (keyInput) keyInput.value = capturedKey;
+    isCapturingPanicKey = false;
+    if (captureButton) captureButton.textContent = 'SET KEY';
+    if (captureStatus) captureStatus.textContent = `Shortcut key set to ${capturedKey}. Save settings to confirm.`;
+    return;
+  }
+
+  const configuredKey = normalizePanicKey(localStorage.getItem(PANIC_KEY_STORAGE_KEY) || '');
+  const eventTarget = event.target;
+  const isFormControl = eventTarget instanceof Element && (
+    Boolean(eventTarget.closest('input, textarea, select, button')) ||
+    (eventTarget.isContentEditable ?? false)
+  );
+  if (
+    !configuredKey ||
+    normalizePanicKey(event.key) !== configuredKey ||
+    event.repeat ||
+    event.ctrlKey ||
+    event.altKey ||
+    event.metaKey ||
+    event.shiftKey ||
+    event.isComposing ||
+    isFormControl
+  ) {
+    return;
+  }
+
+  const savedUrl = localStorage.getItem(PANIC_URL_STORAGE_KEY);
+  if (!savedUrl) return;
+  event.preventDefault();
+  window.open(savedUrl, '_blank', 'noopener,noreferrer');
+}, true);
 
 function getSearchEngine() {
   const savedEngine = localStorage.getItem(SEARCH_ENGINE_STORAGE_KEY);
@@ -129,19 +253,6 @@ if (searchForm) {
       searchQuery.value = suggestion.dataset.search;
       searchForm.requestSubmit();
     });
-  });
-}
-
-const searchSettingsForm = document.getElementById('search-settings-form');
-if (searchSettingsForm) {
-  const engineSelect = document.getElementById('search-engine');
-  const settingsFeedback = document.getElementById('settings-feedback');
-  engineSelect.value = getSearchEngine();
-  searchSettingsForm.addEventListener('submit', (event) => {
-    event.preventDefault();
-    if (!Object.hasOwn(SEARCH_ENGINES, engineSelect.value)) return;
-    localStorage.setItem(SEARCH_ENGINE_STORAGE_KEY, engineSelect.value);
-    settingsFeedback.textContent = `${SEARCH_ENGINES[engineSelect.value].label} SAVED AS YOUR DEFAULT SEARCH ENGINE.`;
   });
 }
 

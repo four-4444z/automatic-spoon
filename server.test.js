@@ -26,14 +26,14 @@ after(async () => {
   await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
 });
 
-test('serves the site and reports the active proxy port', async () => {
+test('redirects the entry page to the dashboard and reports the active proxy port', async () => {
   const [home, health] = await Promise.all([
-    fetch(baseUrl),
+    fetch(baseUrl, { redirect: 'manual' }),
     fetch(`${baseUrl}/health`)
   ]);
 
-  assert.equal(home.status, 200);
-  assert.match(await home.text(), /id="login-form"/);
+  assert.equal(home.status, 302);
+  assert.equal(home.headers.get('location'), '/main.html');
   const headers = { cookie: sessionCookie };
   const dashboard = await fetch(`${baseUrl}/main.html`, { headers });
   const dashboardHtml = await dashboard.text();
@@ -42,44 +42,37 @@ test('serves the site and reports the active proxy port', async () => {
   assert.match(dashboardHtml, /id="search-form"/);
   assert.match(dashboardHtml, /matrix-canvas/);
   assert.match(await (await fetch(`${baseUrl}/settings.html`, { headers })).text(), /id="search-engine"/);
-  const themeResponse = await fetch(`${baseUrl}/theme.html`, { headers });
-  const themeHtml = await themeResponse.text();
-  assert.match(themeHtml, /id="theme-form"/);
-  assert.match(themeHtml, /value="system"/);
-  assert.match(themeHtml, /#ff5c67/);
-  assert.match(themeHtml, /#ff9c4a/);
-  assert.match(themeHtml, /#ffd45c/);
-  assert.match(themeHtml, /#64a8ff/);
-  assert.match(themeHtml, /#b18cff/);
-  assert.match(themeHtml, /#ff75be/);
+  const settingsHtml = await (await fetch(`${baseUrl}/settings.html`, { headers })).text();
+  assert.match(settingsHtml, /id="search-engine"/);
+  assert.match(settingsHtml, /id="theme-hex"/);
+  assert.match(settingsHtml, /id="panic-key"/);
+  assert.match(settingsHtml, /id="panic-url"/);
+  assert.match(settingsHtml, /value="system"/);
+  assert.match(settingsHtml, /#ff5c67/);
+  assert.match(settingsHtml, /#ff9c4a/);
+  assert.match(settingsHtml, /#ffd45c/);
+  assert.match(settingsHtml, /#64a8ff/);
+  assert.match(settingsHtml, /#b18cff/);
+  assert.match(settingsHtml, /#ff75be/);
   assert.match(await (await fetch(`${baseUrl}/browser.html`, { headers })).text(), /id="browser-back"/);
   assert.match(await (await fetch(`${baseUrl}/browser.js`, { headers })).text(), /system-core-navigate/);
   assert.match(await (await fetch(`${baseUrl}/terminal.html`, { headers })).text(), /sandbox="allow-forms allow-scripts"/);
   assert.equal((await fetch(`${baseUrl}/main.html`, { headers })).status, 200);
-  assert.equal((await fetch(`${baseUrl}/settings.html`, { redirect: 'manual' })).status, 302);
-  assert.equal((await fetch(`${baseUrl}/theme.html`, { redirect: 'manual' })).status, 302);
+  assert.equal((await fetch(`${baseUrl}/settings.html`)).status, 200);
+  assert.equal((await fetch(`${baseUrl}/theme.html`, { headers })).status, 404);
+  assert.equal((await fetch(`${baseUrl}/index.html`, { redirect: 'manual' })).headers.get('location'), '/main.html');
   assert.deepEqual(await health.json(), { status: 'ok', proxyPort: 5000 });
 });
 
-test('requires a valid login cookie for site pages and proxy requests', async () => {
-  const protectedPage = await fetch(`${baseUrl}/main.html`, { redirect: 'manual' });
-  assert.equal(protectedPage.status, 302);
-  assert.match(protectedPage.headers.get('location'), /^\/index\.html\?next=/);
-
-  const protectedProxy = await fetch(
-    `${baseUrl}/proxy?url=${encodeURIComponent('https://example.com')}`,
+test('serves pages and allows proxy requests without a login cookie', async () => {
+  assert.equal((await fetch(`${baseUrl}/main.html`)).status, 200);
+  assert.equal((await fetch(`${baseUrl}/settings.html`)).status, 200);
+  const proxyResponse = await fetch(
+    `${baseUrl}/proxy?url=${encodeURIComponent('http://127.0.0.1/')}`,
     { redirect: 'manual' }
   );
-  assert.equal(protectedProxy.status, 302);
-  assert.match(protectedProxy.headers.get('location'), /^\/index\.html\?next=/);
-
-  for (const alias of ['/%6dain.html', '/MAIN.HTML']) {
-    const response = await fetch(`${baseUrl}${alias}`, { redirect: 'manual' });
-    assert.equal(response.status, 302, `${alias} must not bypass the login gate`);
-  }
-
-  const loginPage = await fetch(`${baseUrl}/index.html`, { redirect: 'manual' });
-  assert.equal(loginPage.status, 200);
+  assert.equal(proxyResponse.status, 400);
+  assert.match(await proxyResponse.text(), /public IP addresses/);
 });
 
 test('issues a signed HttpOnly 30-day cookie only for correct credentials', async () => {
@@ -115,7 +108,7 @@ test('issues a signed HttpOnly 30-day cookie only for correct credentials', asyn
   })).json(), { authenticated: true });
 });
 
-test('redirects already-authenticated browsers away from the login page', async () => {
+test('redirects browsers to the dashboard regardless of prior login state', async () => {
   const response = await fetch(`${baseUrl}/index.html`, {
     headers: { cookie: sessionCookie },
     redirect: 'manual'
@@ -130,6 +123,7 @@ test('logout clears the session cookie', async () => {
     redirect: 'manual'
   });
   assert.equal(response.status, 303);
+  assert.equal(response.headers.get('location'), '/main.html');
   assert.match(response.headers.get('set-cookie'), /Max-Age=0/);
   assert.deepEqual(await (await fetch(`${baseUrl}/api/session`, {
     headers: { cookie: sessionCookie }
@@ -166,8 +160,9 @@ test('blocks private destinations and refuses proxy requests to loopback', async
     `${baseUrl}/proxy?url=${encodeURIComponent('http://127.0.0.1/')}`,
     { headers: { cookie: sessionCookie } }
   );
-  assert.equal(response.status, 302);
+  assert.equal(response.status, 400);
   assert.equal(authenticatedResponse.status, 400);
+  assert.match(await response.text(), /public IP addresses/);
   assert.match(await authenticatedResponse.text(), /public IP addresses/);
 });
 

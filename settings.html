@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Choose the default search engine for CORE_SEARCH.">
-  <title>SEARCH SETTINGS | CORE_SEARCH</title>
+  <meta name="description" content="Customize search, colors, appearance, and panic shortcut settings for CORE_SEARCH.">
+  <title>SETTINGS | CORE_SEARCH</title>
   <link href="style.css" rel="stylesheet" type="text/css">
 </head>
 <body class="search-dashboard">
@@ -21,8 +21,6 @@
       <li><a href="browser.html">BROWSER</a></li>
       <li><a href="terminal.html">TERMINAL</a></li>
       <li><a href="settings.html" class="active">SETTINGS</a></li>
-      <li><a href="theme.html">THEME</a></li>
-      <li><a href="/logout">LOGOUT</a></li>
     </ul>
   </nav>
 
@@ -30,8 +28,8 @@
     <a class="settings-back" href="main.html">&larr; BACK TO SEARCH</a>
     <section class="settings-panel">
       <p class="search-kicker"><span class="online-indicator"></span> PERSONALIZE YOUR EXPERIENCE</p>
-      <h1>SEARCH SETTINGS</h1>
-      <p class="settings-description">Choose where CORE_SEARCH sends your searches. Your preference is saved in this browser.</p>
+      <h1>SETTINGS</h1>
+      <p class="settings-description">Customize search, theme, appearance, and your quick-exit shortcut.</p>
       <form id="search-settings-form">
         <label class="settings-label" for="search-engine">DEFAULT SEARCH ENGINE</label>
         <select id="search-engine" name="search-engine">
@@ -39,10 +37,61 @@
           <option value="google">Google</option>
           <option value="bing">Bing</option>
         </select>
-        <button class="settings-save" type="submit">SAVE PREFERENCE</button>
+
+        <fieldset class="theme-fieldset">
+          <legend class="settings-label">ACCENT COLOR</legend>
+          <div class="theme-swatches" role="group" aria-label="Preset accent colors">
+            <button class="theme-swatch" type="button" data-color="#ff5c67" aria-label="Red" aria-pressed="false" style="--swatch-color: #ff5c67"><span>Red</span></button>
+            <button class="theme-swatch" type="button" data-color="#ff9c4a" aria-label="Orange" aria-pressed="false" style="--swatch-color: #ff9c4a"><span>Orange</span></button>
+            <button class="theme-swatch" type="button" data-color="#ffd45c" aria-label="Yellow" aria-pressed="false" style="--swatch-color: #ffd45c"><span>Yellow</span></button>
+            <button class="theme-swatch" type="button" data-color="#61f99b" aria-label="Green" aria-pressed="false" style="--swatch-color: #61f99b"><span>Green</span></button>
+            <button class="theme-swatch" type="button" data-color="#64a8ff" aria-label="Blue" aria-pressed="false" style="--swatch-color: #64a8ff"><span>Blue</span></button>
+            <button class="theme-swatch" type="button" data-color="#b18cff" aria-label="Purple" aria-pressed="false" style="--swatch-color: #b18cff"><span>Purple</span></button>
+            <button class="theme-swatch" type="button" data-color="#ff75be" aria-label="Pink" aria-pressed="false" style="--swatch-color: #ff75be"><span>Pink</span></button>
+          </div>
+          <label class="settings-label custom-color-label" for="theme-hex">OR ENTER A HEX COLOR</label>
+          <div class="custom-color-row">
+            <input id="theme-hex" name="theme-hex" type="text" value="#61f99b" maxlength="7" pattern="^#[0-9a-fA-F]{6}$" placeholder="#61f99b" autocomplete="off" spellcheck="false" aria-describedby="theme-hex-help">
+            <input id="theme-color-picker" type="color" value="#61f99b" aria-label="Choose a custom color">
+          </div>
+          <p id="theme-hex-help" class="theme-help">Use the format #RRGGBB.</p>
+        </fieldset>
+
+        <fieldset class="theme-fieldset appearance-fieldset">
+          <legend class="settings-label">APPEARANCE</legend>
+          <div class="appearance-options">
+            <label class="appearance-option">
+              <input type="radio" name="appearance" value="dark">
+              <span><strong>Dark</strong><small>Matrix after hours</small></span>
+            </label>
+            <label class="appearance-option">
+              <input type="radio" name="appearance" value="light">
+              <span><strong>Light</strong><small>Bright and clear</small></span>
+            </label>
+            <label class="appearance-option">
+              <input type="radio" name="appearance" value="system">
+              <span><strong>System</strong><small>Follow your device</small></span>
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset class="theme-fieldset panic-fieldset">
+          <legend class="settings-label">PANIC KEY</legend>
+          <p class="theme-help panic-description">Press your shortcut to open your chosen destination in a new tab. It stays inactive while you type in a field.</p>
+          <label class="settings-label custom-color-label" for="panic-url">DESTINATION URL</label>
+          <input class="settings-text-input" id="panic-url" name="panic-url" type="text" inputmode="url" placeholder="https://example.com" autocomplete="url">
+          <div class="panic-key-row">
+            <input class="settings-text-input panic-key-input" id="panic-key" name="panic-key" type="text" placeholder="No key set" readonly aria-label="Current panic key">
+            <button class="panic-capture" id="panic-capture" type="button">SET KEY</button>
+            <button class="panic-clear" id="panic-clear" type="button">CLEAR</button>
+          </div>
+          <p class="theme-help">Choose a single key without Ctrl, Alt, or Shift. Example: F9 or `</p>
+          <p class="theme-help" id="panic-capture-status" role="status" aria-live="polite"></p>
+        </fieldset>
+
+        <button class="settings-save" type="submit">SAVE SETTINGS</button>
         <p class="settings-feedback" id="settings-feedback" role="status" aria-live="polite"></p>
       </form>
-      <a class="settings-theme-link" href="theme.html">CUSTOMIZE THEME &amp; APPEARANCE &rarr;</a>
     </section>
   </main>
 

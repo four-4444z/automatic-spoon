@@ -950,20 +950,6 @@ button:hover {
   font-size: 0.68rem;
 }
 
-.settings-theme-link {
-  display: inline-block;
-  margin-top: 1rem;
-  color: var(--theme-accent);
-  font-size: 0.68rem;
-  letter-spacing: 0.08em;
-  text-decoration: none;
-}
-
-.settings-theme-link:hover {
-  text-decoration: underline;
-  text-underline-offset: 4px;
-}
-
 @media screen and (max-width: 760px) {
   .search-dashboard .menu-toggle {
     display: flex;
@@ -1030,11 +1016,11 @@ button:hover {
   }
 }
 
-.theme-panel {
+.settings-panel {
   --theme-ink: #effff4;
 }
 
-.theme-panel h1 {
+.settings-panel h1 {
   color: var(--theme-ink);
 }
 
@@ -1132,6 +1118,54 @@ button:hover {
   font-size: 0.68rem;
 }
 
+.panic-description {
+  clear: both;
+  padding-top: 0.5rem;
+  line-height: 1.5;
+}
+
+.settings-text-input {
+  width: 100%;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid rgba(136, 255, 177, 0.3);
+  border-radius: 8px;
+  background: #08110b;
+  color: #eafff0;
+  font: inherit;
+}
+
+.panic-key-row {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.7rem;
+}
+
+.panic-key-input {
+  min-width: 0;
+  flex: 1;
+}
+
+.panic-capture,
+.panic-clear {
+  width: auto;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.65rem;
+}
+
+.panic-capture {
+  border-color: var(--theme-accent);
+  color: var(--theme-accent);
+}
+
+.panic-clear {
+  border-color: rgba(138, 184, 151, 0.3);
+  color: #9cb6a7;
+}
+
+.panic-capture-status {
+  min-height: 1em;
+}
+
 .appearance-fieldset {
   margin-top: 1.4rem;
 }
@@ -1183,11 +1217,11 @@ button:hover {
   font-size: 0.64rem;
 }
 
-.theme-panel .settings-save {
+.settings-panel .settings-save {
   background: var(--theme-accent);
 }
 
-.theme-panel .settings-save:hover {
+.settings-panel .settings-save:hover {
   background: color-mix(in srgb, var(--theme-accent) 75%, white);
 }
 
@@ -1341,6 +1375,7 @@ html[data-appearance="light"] .search-dashboard .settings-panel {
 
 html[data-appearance="light"] .search-dashboard .search-form input,
 html[data-appearance="light"] .search-dashboard .custom-color-row input[type="text"],
+html[data-appearance="light"] .search-dashboard .settings-text-input,
 html[data-appearance="light"] .search-dashboard .settings-panel select {
   background: transparent;
   color: #1b3024;
@@ -1381,6 +1416,7 @@ html[data-appearance="light"] .search-dashboard .appearance-option small {
 
 html[data-appearance="light"] .search-dashboard .custom-color-row input[type="text"],
 html[data-appearance="light"] .search-dashboard .custom-color-row input[type="color"],
+html[data-appearance="light"] .search-dashboard .settings-text-input,
 html[data-appearance="light"] .search-dashboard .settings-panel select {
   border-color: rgba(37, 83, 52, 0.24);
   background: #f5f9f6;
@@ -1427,4 +1463,274 @@ html[data-appearance="light"] body:not(.search-dashboard) .unblocker-interface i
   html:not([data-appearance]) body.search-dashboard {
     background: #edf3ef;
   }
+}
+
+:root {
+  --theme-page-surface: color-mix(in srgb, var(--theme-accent, #00ff00) 5%, #020604);
+  --theme-nav-surface: color-mix(in srgb, var(--theme-accent, #00ff00) 8%, #020604);
+  --theme-menu-surface: color-mix(in srgb, var(--theme-accent, #00ff00) 24%, #020604);
+  --theme-panel-surface: color-mix(in srgb, var(--theme-accent, #00ff00) 10%, #08110b);
+  --theme-card-surface: color-mix(in srgb, var(--theme-accent, #00ff00) 8%, #08110b);
+  --theme-field-surface: color-mix(in srgb, var(--theme-accent, #00ff00) 12%, #050b07);
+  --theme-primary-text: color-mix(in srgb, var(--theme-accent, #00ff00) 22%, #e9fff2);
+  --theme-secondary-text: color-mix(in srgb, var(--theme-accent, #00ff00) 25%, #9cb6a7);
+  --theme-muted-text: color-mix(in srgb, var(--theme-accent, #00ff00) 22%, #71877a);
+  --theme-soft-border: color-mix(in srgb, var(--theme-accent, #00ff00) 24%, transparent);
+}
+
+html[data-appearance="light"] {
+  --theme-page-surface: color-mix(in srgb, var(--theme-accent, #00ff00) 7%, #edf3ef);
+  --theme-nav-surface: color-mix(in srgb, var(--theme-accent, #00ff00) 8%, #f4f9f5);
+  --theme-menu-surface: color-mix(in srgb, var(--theme-accent, #00ff00) 18%, #f4f9f5);
+  --theme-panel-surface: color-mix(in srgb, var(--theme-accent, #00ff00) 9%, white);
+  --theme-card-surface: color-mix(in srgb, var(--theme-accent, #00ff00) 7%, white);
+  --theme-field-surface: color-mix(in srgb, var(--theme-accent, #00ff00) 8%, #f5f9f6);
+  --theme-primary-text: color-mix(in srgb, var(--theme-accent, #00ff00) 22%, #20352a);
+  --theme-secondary-text: color-mix(in srgb, var(--theme-accent, #00ff00) 20%, #506b5a);
+  --theme-muted-text: color-mix(in srgb, var(--theme-accent, #00ff00) 18%, #657a6b);
+}
+
+body.search-dashboard {
+  background: var(--theme-page-surface);
+  color: var(--theme-primary-text);
+}
+
+.search-dashboard .navbar {
+  background: color-mix(in srgb, var(--theme-nav-surface) 92%, transparent);
+  border-bottom-color: var(--theme-soft-border);
+}
+
+.search-dashboard .nav-logo,
+.search-dashboard .settings-panel h1,
+.search-dashboard .search-hero h1 {
+  color: var(--theme-primary-text);
+}
+
+.search-dashboard .nav-links a,
+.search-dashboard .search-kicker,
+.search-dashboard .settings-description,
+.search-dashboard .settings-label,
+.search-dashboard .search-description,
+.search-dashboard .search-engine-note,
+.search-dashboard .search-suggestions > span,
+.search-dashboard .search-footer,
+.search-dashboard .theme-help,
+.search-dashboard .appearance-option small,
+.search-dashboard .shortcut-card small,
+.search-dashboard .settings-back {
+  color: var(--theme-secondary-text);
+}
+
+.search-dashboard .search-form,
+.search-dashboard .shortcut-card,
+.search-dashboard .settings-panel {
+  border-color: var(--theme-soft-border);
+  background: var(--theme-panel-surface);
+}
+
+.search-dashboard .search-form {
+  box-shadow: 0 14px 50px rgba(0, 0, 0, 0.28), 0 0 28px color-mix(in srgb, var(--theme-accent) 12%, transparent);
+}
+
+.search-dashboard .search-form input,
+.search-dashboard .settings-text-input,
+.search-dashboard .settings-panel select,
+.search-dashboard .custom-color-row input[type="text"],
+.search-dashboard .shortcut-card strong,
+.search-dashboard .appearance-option strong {
+  color: var(--theme-primary-text);
+}
+
+.search-dashboard .search-form input::placeholder {
+  color: var(--theme-muted-text);
+}
+
+.search-dashboard .search-suggestions button,
+.search-dashboard .appearance-option {
+  border-color: var(--theme-soft-border);
+  background: var(--theme-card-surface);
+  color: var(--theme-secondary-text);
+}
+
+.search-dashboard .settings-text-input,
+.search-dashboard .settings-panel select,
+.search-dashboard .custom-color-row input[type="text"],
+.search-dashboard .custom-color-row input[type="color"] {
+  border-color: var(--theme-soft-border);
+  background: var(--theme-field-surface);
+}
+
+body:not(.search-dashboard) {
+  background-color: var(--theme-page-surface);
+  color: var(--theme-primary-text);
+}
+
+body:not(.search-dashboard) h1,
+body:not(.search-dashboard) .input-group label,
+body:not(.search-dashboard) .nav-links a,
+body:not(.search-dashboard) .nav-logo,
+body:not(.search-dashboard) .toggle-password,
+body:not(.search-dashboard) .terminal-input-line input,
+body:not(.search-dashboard) .nav-btn,
+body:not(.search-dashboard) .status-ok,
+body:not(.search-dashboard) .terminal-output {
+  color: var(--theme-primary-text);
+}
+
+body:not(.search-dashboard) .navbar,
+body:not(.search-dashboard) .login-container,
+body:not(.search-dashboard) .terminal-container,
+body:not(.search-dashboard) .status-panel {
+  border-color: var(--theme-soft-border);
+  background-color: var(--theme-panel-surface);
+}
+
+body:not(.search-dashboard) .input-group input,
+body:not(.search-dashboard) .unblocker-interface input {
+  border-color: var(--theme-soft-border);
+  background: var(--theme-field-surface);
+  color: var(--theme-primary-text);
+}
+
+body:not(.search-dashboard) button:hover:not(.toggle-password) {
+  background-color: var(--theme-accent);
+  color: #050807;
+}
+
+html[data-appearance="light"] body.search-dashboard,
+html[data-appearance="light"] body:not(.search-dashboard) {
+  background-color: var(--theme-page-surface);
+}
+
+html[data-appearance="light"] body.search-dashboard {
+  color: var(--theme-primary-text);
+}
+
+html[data-appearance="light"] .search-dashboard .navbar {
+  background: color-mix(in srgb, var(--theme-nav-surface) 92%, transparent);
+}
+
+html[data-appearance="light"] .search-dashboard .search-form,
+html[data-appearance="light"] .search-dashboard .shortcut-card,
+html[data-appearance="light"] .search-dashboard .settings-panel,
+html[data-appearance="light"] .search-dashboard .search-suggestions button,
+html[data-appearance="light"] .search-dashboard .appearance-option,
+html[data-appearance="light"] body:not(.search-dashboard) .navbar,
+html[data-appearance="light"] body:not(.search-dashboard) .login-container,
+html[data-appearance="light"] body:not(.search-dashboard) .terminal-container,
+html[data-appearance="light"] body:not(.search-dashboard) .status-panel {
+  border-color: var(--theme-soft-border);
+  background-color: var(--theme-panel-surface);
+}
+
+html[data-appearance="light"] .search-dashboard .search-form input,
+html[data-appearance="light"] .search-dashboard .settings-text-input,
+html[data-appearance="light"] .search-dashboard .settings-panel select,
+html[data-appearance="light"] .search-dashboard .custom-color-row input[type="text"],
+html[data-appearance="light"] body:not(.search-dashboard) .input-group input,
+html[data-appearance="light"] body:not(.search-dashboard) .unblocker-interface input {
+  border-color: var(--theme-soft-border);
+  background: var(--theme-field-surface);
+  color: var(--theme-primary-text);
+}
+
+html[data-appearance="light"] .search-dashboard .nav-links a,
+html[data-appearance="light"] .search-dashboard .search-engine-note,
+html[data-appearance="light"] .search-dashboard .search-suggestions > span,
+html[data-appearance="light"] .search-dashboard .search-footer,
+html[data-appearance="light"] .search-dashboard .settings-label,
+html[data-appearance="light"] .search-dashboard .theme-help,
+html[data-appearance="light"] .search-dashboard .settings-description,
+html[data-appearance="light"] .search-dashboard .search-description,
+html[data-appearance="light"] .search-dashboard .appearance-option small,
+html[data-appearance="light"] .search-dashboard .shortcut-card small,
+html[data-appearance="light"] body:not(.search-dashboard) {
+  color: var(--theme-secondary-text);
+}
+
+html[data-appearance="light"] .search-dashboard .nav-logo,
+html[data-appearance="light"] .search-dashboard .settings-panel h1,
+html[data-appearance="light"] .search-dashboard .search-hero h1,
+html[data-appearance="light"] .search-dashboard .search-form input,
+html[data-appearance="light"] .search-dashboard .settings-text-input,
+html[data-appearance="light"] .search-dashboard .settings-panel select,
+html[data-appearance="light"] .search-dashboard .custom-color-row input[type="text"],
+html[data-appearance="light"] .search-dashboard .shortcut-card strong,
+html[data-appearance="light"] .search-dashboard .appearance-option strong {
+  color: var(--theme-primary-text);
+}
+
+html[data-appearance="light"] .search-dashboard .search-description,
+html[data-appearance="light"] .search-dashboard .settings-description,
+html[data-appearance="light"] .search-dashboard .settings-label,
+html[data-appearance="light"] .search-dashboard .theme-help,
+html[data-appearance="light"] .search-dashboard .search-engine-note,
+html[data-appearance="light"] .search-dashboard .search-suggestions > span,
+html[data-appearance="light"] .search-dashboard .search-footer,
+html[data-appearance="light"] .search-dashboard .appearance-option small,
+html[data-appearance="light"] .search-dashboard .shortcut-card small,
+html[data-appearance="light"] .search-dashboard .nav-links a {
+  color: var(--theme-secondary-text);
+}
+
+.search-dashboard .navbar,
+body:not(.search-dashboard) .navbar {
+  background-color: color-mix(in srgb, var(--theme-accent, #00ff00) 22%, #020604);
+  border-bottom-color: color-mix(in srgb, var(--theme-accent, #00ff00) 48%, transparent);
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--theme-accent, #00ff00) 10%, transparent);
+}
+
+.search-dashboard .nav-logo,
+.search-dashboard .nav-links a,
+body:not(.search-dashboard) .nav-logo,
+body:not(.search-dashboard) .nav-links a {
+  color: color-mix(in srgb, var(--theme-accent, #00ff00) 34%, #effff4);
+}
+
+.search-dashboard .nav-links a:hover,
+.search-dashboard .nav-links a.active,
+body:not(.search-dashboard) .nav-links a:hover,
+body:not(.search-dashboard) .nav-links a.active {
+  background: color-mix(in srgb, var(--theme-accent, #00ff00) 20%, transparent);
+  color: var(--theme-accent, #00ff00);
+}
+
+.navbar .nav-links {
+  background-color: var(--theme-menu-surface);
+  border-bottom-color: color-mix(in srgb, var(--theme-accent, #00ff00) 48%, transparent);
+}
+
+.navbar .menu-toggle {
+  border-color: color-mix(in srgb, var(--theme-accent, #00ff00) 48%, transparent);
+}
+
+.navbar .menu-toggle .bar {
+  background: var(--theme-accent, #00ff00);
+}
+
+html[data-appearance="light"] .search-dashboard .navbar,
+html[data-appearance="light"] body:not(.search-dashboard) .navbar {
+  background-color: color-mix(in srgb, var(--theme-accent, #00ff00) 18%, #f4f9f5);
+  border-bottom-color: color-mix(in srgb, var(--theme-accent, #00ff00) 34%, transparent);
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--theme-accent, #00ff00) 8%, transparent);
+}
+
+html[data-appearance="light"] .navbar .nav-links {
+  background-color: var(--theme-menu-surface);
+  border-bottom-color: color-mix(in srgb, var(--theme-accent, #00ff00) 34%, transparent);
+}
+
+html[data-appearance="light"] .search-dashboard .nav-logo,
+html[data-appearance="light"] .search-dashboard .nav-links a,
+html[data-appearance="light"] body:not(.search-dashboard) .nav-logo,
+html[data-appearance="light"] body:not(.search-dashboard) .nav-links a {
+  color: color-mix(in srgb, var(--theme-accent, #00ff00) 50%, #243b2d);
+}
+
+html[data-appearance="light"] .search-dashboard .nav-links a:hover,
+html[data-appearance="light"] .search-dashboard .nav-links a.active,
+html[data-appearance="light"] body:not(.search-dashboard) .nav-links a:hover,
+html[data-appearance="light"] body:not(.search-dashboard) .nav-links a.active {
+  background: color-mix(in srgb, var(--theme-accent, #00ff00) 20%, white);
+  color: color-mix(in srgb, var(--theme-accent, #00ff00) 70%, #17271d);
 }
