@@ -1269,6 +1269,16 @@ button:hover {
     margin-inline: 1rem;
   }
 
+  .dashboard-browser-address input,
+  .search-form input {
+    font-size: 16px;
+  }
+
+  .dashboard-browser-chrome button,
+  .search-form button {
+    touch-action: manipulation;
+  }
+
   .search-dashboard .menu-toggle {
     display: flex;
     width: auto;

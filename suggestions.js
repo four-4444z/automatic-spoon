@@ -12,7 +12,7 @@ suggestionForm.addEventListener('submit', async (event) => {
     const apiUrl = (window.SYSTEM_CORE_API_URL || '').replace(/\/+$/, '');
     const response = await fetch(`${apiUrl}/api/suggestions`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'text/plain;charset=UTF-8' },
       body: JSON.stringify({
         type: formData.get('type'),
         title: formData.get('title'),
@@ -25,7 +25,9 @@ suggestionForm.addEventListener('submit', async (event) => {
     suggestionForm.reset();
     feedback.textContent = 'Thanks! Your suggestion was sent.';
   } catch (error) {
-    feedback.textContent = error.message || 'Could not send your suggestion. Please try again.';
+    feedback.textContent = error instanceof TypeError
+      ? 'Could not connect to the suggestions service. Check your connection and try again.'
+      : error.message || 'Could not send your suggestion. Please try again.';
   } finally {
     submitButton.disabled = false;
   }

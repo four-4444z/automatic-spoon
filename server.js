@@ -456,8 +456,8 @@ function createServer(authConfig = loadAuthConfig(), options = {}) {
         }
       }
 
-      if (!/^application\/json(?:\s*;|$)/i.test(request.headers['content-type'] || '')) {
-        sendJson(response, 415, { error: 'Submit suggestions as JSON.' });
+      if (!/^(?:application\/json|text\/plain)(?:\s*;|$)/i.test(request.headers['content-type'] || '')) {
+        sendJson(response, 415, { error: 'Submit suggestions as JSON or plain text containing JSON.' });
         return;
       }
 

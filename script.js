@@ -287,8 +287,9 @@ function setActiveBrowserTab(tab) {
   browserAddressInput.value = tab.url || '';
   browserTabs.forEach((browserTab) => {
     if (browserTab.frame) {
-      browserTab.frame.hidden = browserTab.id !== tab.id;
-      browserTab.frame.setAttribute('aria-hidden', String(browserTab.id !== tab.id));
+      const hidden = browserTab.id !== tab.id || !browserTab.url;
+      browserTab.frame.hidden = hidden;
+      browserTab.frame.setAttribute('aria-hidden', String(hidden));
     }
   });
   document.body.classList.toggle('is-browsing', Boolean(tab.url));
