@@ -3,42 +3,88 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>>_ SYSTEM_CORE</title>
-  <link href="style.css" rel="stylesheet" type="text/css" />
+  <meta name="description" content="CORE_SEARCH — a matrix-powered search dashboard.">
+  <title>CORE_SEARCH</title>
+  <link href="style.css" rel="stylesheet" type="text/css">
 </head>
-<body>
+<body class="search-dashboard">
   <canvas id="matrix-canvas"></canvas>
   <nav class="navbar">
-    <div class="nav-logo">>_ SYSTEM_CORE</div>
-    <div class="menu-toggle" id="mobile-menu">
+    <a class="nav-logo" href="main.html">CORE_SEARCH</a>
+    <button class="menu-toggle" id="mobile-menu" aria-label="Toggle navigation" aria-expanded="false">
       <span class="bar"></span>
       <span class="bar"></span>
       <span class="bar"></span>
-    </div>
+    </button>
     <ul class="nav-links">
-      <li><a href="main.html">DASHBOARD</a></li>
-      <li><a href="terminal.html">TERMINAL</a></li>
+      <li><a href="main.html" class="active">SEARCH</a></li>
       <li><a href="browser.html">BROWSER</a></li>
-      <li><a href="youtube.html">YOUTUBE</a></li>
-      <li><a href="chat.html">CHAT</a></li>
-      <li><a href="strongdog.html">STRONGDOG</a></li>
-      <li><a href="games.html">FREEZENOVA (<span style="color: #ff0000;">down</span>)</a></li>
-      <li><a href="entertainment.html">ENTERTAINMENT</a></li>
-      <li><a href="apply.html">APPLY</a></li>
-      <li><a href="about.html">ABOUT</a></li>
+      <li><a href="terminal.html">TERMINAL</a></li>
+      <li><a href="settings.html">SETTINGS</a></li>
+      <li><a href="theme.html">THEME</a></li>
       <li><a href="/logout">LOGOUT</a></li>
     </ul>
   </nav>
-  
-  <div class="main-content">
-    <h1>>_ SYSTEM_CORE</h1>
-    <div class="status-panel">
-      <p>SYSTEM STATUS: <span class="blink">ONLINE</span></p>
-      <p>CURRENT SESSION: ACTIVE</p>
-      <p>SECURITY CLEARANCE: LEVEL 5</p>
-      <p>Welcome to our mega site! We have everything you need.</p>
-    </div>
-  </div>
+
+  <main class="search-home">
+    <section class="search-hero" aria-labelledby="search-title">
+      <div class="search-orb" aria-hidden="true"><span>&gt;_</span></div>
+      <p class="search-kicker"><span class="online-indicator"></span> SYSTEM ONLINE <span class="kicker-divider">/</span> PRIVATE SEARCH</p>
+      <h1 id="search-title">CORE<span>_</span>SEARCH</h1>
+      <p class="search-description">Your gateway to the open web.</p>
+
+      <form class="search-form" id="search-form" role="search">
+        <label class="sr-only" for="search-query">Search the web</label>
+        <span class="search-icon" aria-hidden="true">⌕</span>
+        <input
+          id="search-query"
+          name="q"
+          type="search"
+          placeholder="Search anything..."
+          autocomplete="off"
+          aria-label="Search the web"
+          required
+        >
+        <button type="submit" class="search-submit" aria-label="Submit search">&rarr;</button>
+      </form>
+      <p class="search-engine-note">SEARCHING WITH <a href="settings.html" id="active-search-engine">DUCKDUCKGO</a></p>
+
+      <div class="search-suggestions" aria-label="Suggested searches">
+        <span>TRY</span>
+        <button type="button" data-search="weather today">WEATHER</button>
+        <button type="button" data-search="latest technology news">TECH NEWS</button>
+        <button type="button" data-search="learn something new">EXPLORE</button>
+      </div>
+    </section>
+
+    <section class="search-shortcuts" aria-label="SYSTEM SHORTCUTS">
+      <a class="shortcut-card" href="browser.html">
+        <span class="shortcut-icon">&nearr;</span>
+        <span><strong>WEB BROWSER</strong><small>Browse through the local proxy</small></span>
+        <span class="shortcut-arrow">&rarr;</span>
+      </a>
+      <a class="shortcut-card" href="terminal.html">
+        <span class="shortcut-icon">&gt;_</span>
+        <span><strong>COMMAND TERMINAL</strong><small>Open the system console</small></span>
+        <span class="shortcut-arrow">&rarr;</span>
+      </a>
+      <a class="shortcut-card" href="settings.html">
+        <span class="shortcut-icon">&#9881;</span>
+        <span><strong>SEARCH SETTINGS</strong><small>Choose your search engine</small></span>
+        <span class="shortcut-arrow">&rarr;</span>
+      </a>
+      <a class="shortcut-card" href="theme.html">
+        <span class="shortcut-icon">&#10038;</span>
+        <span><strong>THEME &amp; APPEARANCE</strong><small>Choose colors and light or dark mode</small></span>
+        <span class="shortcut-arrow">&rarr;</span>
+      </a>
+    </section>
+
+    <footer class="search-footer">
+      <span>CORE_SEARCH <span class="footer-separator">/</span> SYSTEM READY</span>
+      <span>POWERED BY YOUR CHOSEN SEARCH ENGINE</span>
+    </footer>
+  </main>
 
   <script src="script.js"></script>
 </body>

@@ -2,6 +2,10 @@
 
 SYSTEM_CORE is a static website built with HTML, CSS, and vanilla JavaScript, with an optional local Node.js backend for proxy browsing.
 
+The dashboard is a search-first CORE_SEARCH home. Use **Settings** to choose DuckDuckGo, Google, or Bing; the selected engine is saved in the current browser.
+
+Use the **Theme** page to select a preset accent, enter a custom hex color, and choose dark, light, or system appearance. Theme preferences are saved in the current browser and applied across the site's pages.
+
 ## Run the site and local proxy
 
 Install Node.js 18 or newer, open a terminal in the project folder, and run:

@@ -33,12 +33,31 @@ test('serves the site and reports the active proxy port', async () => {
   ]);
 
   assert.equal(home.status, 200);
-  assert.match(await home.text(), /SYSTEM_CORE/);
+  assert.match(await home.text(), /id="login-form"/);
   const headers = { cookie: sessionCookie };
+  const dashboard = await fetch(`${baseUrl}/main.html`, { headers });
+  const dashboardHtml = await dashboard.text();
+  assert.equal(dashboard.status, 200);
+  assert.match(dashboardHtml, /CORE_SEARCH/);
+  assert.match(dashboardHtml, /id="search-form"/);
+  assert.match(dashboardHtml, /matrix-canvas/);
+  assert.match(await (await fetch(`${baseUrl}/settings.html`, { headers })).text(), /id="search-engine"/);
+  const themeResponse = await fetch(`${baseUrl}/theme.html`, { headers });
+  const themeHtml = await themeResponse.text();
+  assert.match(themeHtml, /id="theme-form"/);
+  assert.match(themeHtml, /value="system"/);
+  assert.match(themeHtml, /#ff5c67/);
+  assert.match(themeHtml, /#ff9c4a/);
+  assert.match(themeHtml, /#ffd45c/);
+  assert.match(themeHtml, /#64a8ff/);
+  assert.match(themeHtml, /#b18cff/);
+  assert.match(themeHtml, /#ff75be/);
   assert.match(await (await fetch(`${baseUrl}/browser.html`, { headers })).text(), /id="browser-back"/);
   assert.match(await (await fetch(`${baseUrl}/browser.js`, { headers })).text(), /system-core-navigate/);
   assert.match(await (await fetch(`${baseUrl}/terminal.html`, { headers })).text(), /sandbox="allow-forms allow-scripts"/);
   assert.equal((await fetch(`${baseUrl}/main.html`, { headers })).status, 200);
+  assert.equal((await fetch(`${baseUrl}/settings.html`, { redirect: 'manual' })).status, 302);
+  assert.equal((await fetch(`${baseUrl}/theme.html`, { redirect: 'manual' })).status, 302);
   assert.deepEqual(await health.json(), { status: 'ok', proxyPort: 5000 });
 });
 

@@ -4,6 +4,146 @@ const proxyForm = document.getElementById('proxy-form');
 const proxyUrlInput = document.getElementById('proxy-url');
 const proxyFrame = document.getElementById('proxy-frame');
 const proxyStatus = document.getElementById('proxy-status');
+const SEARCH_ENGINES = {
+  duckduckgo: { label: 'DUCKDUCKGO', url: 'https://duckduckgo.com/?q=' },
+  google: { label: 'GOOGLE', url: 'https://www.google.com/search?q=' },
+  bing: { label: 'BING', url: 'https://www.bing.com/search?q=' }
+};
+const SEARCH_ENGINE_STORAGE_KEY = 'coreSearchEngine';
+const THEME_COLOR_STORAGE_KEY = 'coreSearchThemeColor';
+const APPEARANCE_STORAGE_KEY = 'coreSearchAppearance';
+const DEFAULT_THEME_COLOR = '#61f99b';
+
+function resolveAppearance(preference) {
+  if (preference === 'light' || preference === 'dark') return preference;
+  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+}
+
+function applyTheme(color, appearance) {
+  const normalizedColor = /^#[0-9a-fA-F]{6}$/.test(color) ? color : DEFAULT_THEME_COLOR;
+  document.documentElement.style.setProperty('--theme-accent', normalizedColor);
+  document.documentElement.dataset.appearance = resolveAppearance(appearance);
+}
+
+function getSavedThemeColor() {
+  const savedColor = localStorage.getItem(THEME_COLOR_STORAGE_KEY);
+  return savedColor && /^#[0-9a-fA-F]{6}$/.test(savedColor) ? savedColor : DEFAULT_THEME_COLOR;
+}
+
+function getSavedAppearance() {
+  const appearance = localStorage.getItem(APPEARANCE_STORAGE_KEY);
+  return ['dark', 'light', 'system'].includes(appearance) ? appearance : 'dark';
+}
+
+function updateThemeSwatches(color) {
+  document.querySelectorAll('.theme-swatch').forEach((swatch) => {
+    swatch.setAttribute('aria-pressed', String(swatch.dataset.color === color.toLowerCase()));
+  });
+}
+
+applyTheme(getSavedThemeColor(), getSavedAppearance());
+window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
+  if (getSavedAppearance() === 'system') applyTheme(getSavedThemeColor(), 'system');
+});
+
+const themeForm = document.getElementById('theme-form');
+if (themeForm) {
+  const hexInput = document.getElementById('theme-hex');
+  const colorPicker = document.getElementById('theme-color-picker');
+  const themeFeedback = document.getElementById('theme-feedback');
+  const savedColor = getSavedThemeColor();
+  hexInput.value = savedColor;
+  colorPicker.value = savedColor;
+  document.querySelector(`input[name="appearance"][value="${getSavedAppearance()}"]`).checked = true;
+  updateThemeSwatches(savedColor);
+
+  document.querySelectorAll('.theme-swatch').forEach((swatch) => {
+    swatch.addEventListener('click', () => {
+      hexInput.value = swatch.dataset.color;
+      colorPicker.value = swatch.dataset.color;
+      updateThemeSwatches(swatch.dataset.color);
+      hexInput.setCustomValidity('');
+    });
+  });
+
+  colorPicker.addEventListener('input', () => {
+    hexInput.value = colorPicker.value;
+    updateThemeSwatches(colorPicker.value);
+    hexInput.setCustomValidity('');
+  });
+
+  hexInput.addEventListener('input', () => {
+    const color = hexInput.value.trim();
+    hexInput.setCustomValidity(/^#[0-9a-fA-F]{6}$/.test(color) ? '' : 'Enter a hex color like #61f99b.');
+    if (/^#[0-9a-fA-F]{6}$/.test(color)) {
+      colorPicker.value = color;
+      updateThemeSwatches(color);
+    } else {
+      updateThemeSwatches('');
+    }
+  });
+
+  themeForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const color = hexInput.value.trim();
+    if (!/^#[0-9a-fA-F]{6}$/.test(color)) {
+      hexInput.setCustomValidity('Enter a hex color like #61f99b.');
+      hexInput.reportValidity();
+      return;
+    }
+
+    const appearance = themeForm.elements.appearance.value;
+    if (!['dark', 'light', 'system'].includes(appearance)) return;
+    localStorage.setItem(THEME_COLOR_STORAGE_KEY, color.toLowerCase());
+    localStorage.setItem(APPEARANCE_STORAGE_KEY, appearance);
+    applyTheme(color, appearance);
+    updateThemeSwatches(color);
+    themeFeedback.textContent = `THEME APPLIED · ${color.toUpperCase()} · ${appearance.toUpperCase()} APPEARANCE`;
+  });
+}
+
+function getSearchEngine() {
+  const savedEngine = localStorage.getItem(SEARCH_ENGINE_STORAGE_KEY);
+  return SEARCH_ENGINES[savedEngine] ? savedEngine : 'duckduckgo';
+}
+
+const searchForm = document.getElementById('search-form');
+const activeSearchEngine = document.getElementById('active-search-engine');
+if (activeSearchEngine) {
+  const engine = SEARCH_ENGINES[getSearchEngine()];
+  activeSearchEngine.textContent = engine.label;
+}
+
+if (searchForm) {
+  const searchQuery = document.getElementById('search-query');
+  searchForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const query = searchQuery.value.trim();
+    if (!query) return;
+    const engine = SEARCH_ENGINES[getSearchEngine()];
+    window.open(`${engine.url}${encodeURIComponent(query)}`, '_blank', 'noopener,noreferrer');
+  });
+
+  document.querySelectorAll('[data-search]').forEach((suggestion) => {
+    suggestion.addEventListener('click', () => {
+      searchQuery.value = suggestion.dataset.search;
+      searchForm.requestSubmit();
+    });
+  });
+}
+
+const searchSettingsForm = document.getElementById('search-settings-form');
+if (searchSettingsForm) {
+  const engineSelect = document.getElementById('search-engine');
+  const settingsFeedback = document.getElementById('settings-feedback');
+  engineSelect.value = getSearchEngine();
+  searchSettingsForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    if (!Object.hasOwn(SEARCH_ENGINES, engineSelect.value)) return;
+    localStorage.setItem(SEARCH_ENGINE_STORAGE_KEY, engineSelect.value);
+    settingsFeedback.textContent = `${SEARCH_ENGINES[engineSelect.value].label} SAVED AS YOUR DEFAULT SEARCH ENGINE.`;
+  });
+}
 
 function openProxyUrl(value) {
   if (!proxyFrame || !proxyUrlInput || !proxyStatus) return false;
@@ -135,7 +275,10 @@ function initMatrixRain() {
 
     // Determine color based on page
     const isVault = window.location.pathname.includes('vault');
-    ctx.fillStyle = isVault ? '#FF3333' : '#33FF33';
+    const themeAccent = getComputedStyle(document.documentElement)
+      .getPropertyValue('--theme-accent')
+      .trim() || '#33FF33';
+    ctx.fillStyle = isVault ? '#FF3333' : themeAccent;
     ctx.font = fontSize + 'px monospace';
 
     for (let i = 0; i < drops.length; i++) {
@@ -185,8 +328,9 @@ const navLinks = document.querySelector('.nav-links');
 
 if (mobileMenu && navLinks) {
   mobileMenu.addEventListener('click', () => {
-    navLinks.classList.toggle('active');
+    const isExpanded = navLinks.classList.toggle('active');
     mobileMenu.classList.toggle('is-active');
+    mobileMenu.setAttribute('aria-expanded', String(isExpanded));
   });
 }
 
