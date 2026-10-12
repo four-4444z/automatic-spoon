@@ -1,4 +1,5 @@
 const dns = require('node:dns').promises;
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const http = require('node:http');
 const https = require('node:https');
@@ -10,6 +11,9 @@ const PORT = Number(process.env.PORT || 5000);
 const ROOT = __dirname;
 const MAX_RESPONSE_BYTES = 12 * 1024 * 1024;
 const MAX_REDIRECTS = 5;
+const SESSION_COOKIE = 'system_core_session';
+const SESSION_DURATION_SECONDS = 30 * 24 * 60 * 60;
+const AUTH_FILE = path.join(ROOT, '.env');
 
 const MIME_TYPES = {
   '.css': 'text/css; charset=utf-8',
@@ -178,7 +182,7 @@ function rewriteHtml(html, baseUrl) {
   const styled = rewritten.replace(/(<style\b[^>]*>)([\s\S]*?)(<\/style\s*>)/gi,
     (_match, opening, css, closing) =>
       `${opening}${rewriteCss(css, baseUrl)}${closing}`);
-  const navigationBridge = `<script>(()=>{document.addEventListener('click',event=>{const link=event.target.closest('a[href]');if(!link)return;const target=new URL(link.href);if(target.origin!==location.origin||target.pathname!=='/proxy')return;const url=target.searchParams.get('url');if(!url)return;event.preventDefault();parent.postMessage({type:'system-core-navigate',url},'*')},true)})();</script>`;
+  const navigationBridge = `<script>(()=>{document.addEventListener('click',event=>{const link=event.target.closest('a[href]');if(!link)return;const target=new URL(link.href);if(target.origin!==new URL(location.href).origin||target.pathname!=='/proxy')return;const url=target.searchParams.get('url');if(!url)return;event.preventDefault();parent.postMessage({type:'system-core-navigate',url},'*')},true)})();</script>`;
   const closingBody = /<\/body\s*>/i;
 
   return closingBody.test(styled)
@@ -213,9 +217,189 @@ function sendError(response, statusCode, message) {
   response.end(message);
 }
 
-function createServer() {
+function loadAuthConfig() {
+  let fileValues = {};
+  try {
+    fileValues = Object.fromEntries(
+      fs.readFileSync(AUTH_FILE, 'utf8')
+        .split(/\r?\n/)
+        .filter((line) => line && !line.startsWith('#'))
+        .map((line) => {
+          const separator = line.indexOf('=');
+          return separator === -1
+            ? ['', '']
+            : [line.slice(0, separator), line.slice(separator + 1)];
+        })
+        .filter(([key]) => key)
+    );
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
+
+  const config = {
+    username: process.env.AUTH_USERNAME || fileValues.AUTH_USERNAME,
+    password: process.env.AUTH_PASSWORD || fileValues.AUTH_PASSWORD,
+    secret: process.env.SESSION_SECRET || fileValues.SESSION_SECRET
+  };
+
+  if (!config.username || !config.password || !config.secret) {
+    config.username = config.username || 'admin';
+    config.password = config.password || crypto.randomBytes(24).toString('base64url');
+    config.secret = config.secret || crypto.randomBytes(48).toString('base64url');
+    fs.writeFileSync(AUTH_FILE, [
+      `AUTH_USERNAME=${config.username}`,
+      `AUTH_PASSWORD=${config.password}`,
+      `SESSION_SECRET=${config.secret}`,
+      ''
+    ].join('\n'), { flag: 'w', mode: 0o600 });
+    console.log(`Created local login credentials in ${AUTH_FILE}; keep this file private.`);
+    if (process.env.NODE_ENV !== 'test') {
+      console.log(`Login username: ${config.username}`);
+      console.log(`Open ${AUTH_FILE} to retrieve your generated login password.`);
+    }
+  }
+
+  return config;
+}
+
+function createSessionToken(config, now = Date.now()) {
+  const expiresAt = Math.floor(now / 1000) + SESSION_DURATION_SECONDS;
+  const payload = Buffer.from(String(expiresAt)).toString('base64url');
+  const signature = crypto.createHmac('sha256', config.secret).update(payload).digest('base64url');
+  return { expiresAt, token: `${payload}.${signature}` };
+}
+
+function verifySessionToken(token, config, now = Date.now()) {
+  if (!token) return false;
+  const [payload, signature, extra] = token.split('.');
+  if (!payload || !signature || extra) return false;
+
+  const expected = crypto.createHmac('sha256', config.secret).update(payload).digest();
+  let actual;
+  try {
+    actual = Buffer.from(signature, 'base64url');
+  } catch {
+    return false;
+  }
+  if (actual.length !== expected.length || !crypto.timingSafeEqual(actual, expected)) return false;
+
+  const expiresAt = Number(Buffer.from(payload, 'base64url').toString('utf8'));
+  return Number.isSafeInteger(expiresAt) && expiresAt > Math.floor(now / 1000);
+}
+
+function hasValidSession(request, config) {
+  const cookieHeader = request.headers.cookie || '';
+  const cookie = cookieHeader.split(';').map((part) => part.trim())
+    .find((part) => part.startsWith(`${SESSION_COOKIE}=`));
+  return verifySessionToken(cookie && cookie.slice(SESSION_COOKIE.length + 1), config);
+}
+
+function sendJson(response, statusCode, value, headers = {}) {
+  response.writeHead(statusCode, {
+    'content-type': 'application/json; charset=utf-8',
+    'cache-control': 'no-store',
+    'x-content-type-options': 'nosniff',
+    ...headers
+  });
+  response.end(JSON.stringify(value));
+}
+
+async function readJsonBody(request) {
+  const chunks = [];
+  let size = 0;
+  for await (const chunk of request) {
+    size += chunk.length;
+    if (size > 4096) throw new Error('Login request is too large.');
+    chunks.push(chunk);
+  }
+  return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+}
+
+function credentialsMatch(username, password, config) {
+  const matches = (actual, expected) => {
+    const actualHash = crypto.createHash('sha256').update(String(actual)).digest();
+    const expectedHash = crypto.createHash('sha256').update(expected).digest();
+    return crypto.timingSafeEqual(actualHash, expectedHash);
+  };
+  return matches(username, config.username) && matches(password, config.password);
+}
+
+function createServer(authConfig = loadAuthConfig()) {
+  const failedLogins = new Map();
   return http.createServer(async (request, response) => {
     const requestUrl = new URL(request.url, `http://${HOST}:${PORT}`);
+
+    if (request.method === 'POST' && requestUrl.pathname === '/api/login') {
+      const origin = request.headers.origin;
+      if (origin && origin !== `http://${request.headers.host}`) {
+        sendJson(response, 403, { error: 'Sign-in request origin is not allowed.' });
+        return;
+      }
+
+      const address = 'local';
+      const attempt = failedLogins.get(address);
+      if (attempt && attempt.lockedUntil > Date.now()) {
+        sendJson(response, 429, { error: 'Too many failed attempts. Try again in 60 seconds.' });
+        return;
+      }
+      if (attempt && attempt.lockedUntil > 0 && attempt.lockedUntil <= Date.now()) {
+        failedLogins.delete(address);
+      }
+
+      let credentials;
+      try {
+        credentials = await readJsonBody(request);
+      } catch {
+        sendJson(response, 400, { error: 'Invalid login request.' });
+        return;
+      }
+
+      if (
+        !credentials ||
+        typeof credentials.username !== 'string' ||
+        typeof credentials.password !== 'string'
+      ) {
+        sendJson(response, 400, { error: 'Username and password are required.' });
+        return;
+      }
+
+      if (!credentialsMatch(credentials.username, credentials.password, authConfig)) {
+        const failures = (failedLogins.get(address)?.failures || 0) + 1;
+        failedLogins.set(address, {
+          failures: failures >= 5 ? 0 : failures,
+          lockedUntil: failures >= 5 ? Date.now() + 60_000 : 0
+        });
+        sendJson(response, 401, { error: 'Invalid username or password.' });
+        return;
+      }
+
+      failedLogins.delete(address);
+      const session = createSessionToken(authConfig);
+      const expires = new Date(session.expiresAt * 1000).toUTCString();
+      sendJson(response, 200, { ok: true }, {
+        'set-cookie': `${SESSION_COOKIE}=${session.token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${SESSION_DURATION_SECONDS}; Expires=${expires}`
+      });
+      return;
+    }
+
+    if (request.method === 'GET' && requestUrl.pathname === '/api/session') {
+      sendJson(response, 200, { authenticated: hasValidSession(request, authConfig) });
+      return;
+    }
+
+    if (requestUrl.pathname === '/logout') {
+      if (request.method !== 'GET' && request.method !== 'POST') {
+        sendError(response, 405, 'Method not allowed.');
+        return;
+      }
+      response.writeHead(303, {
+        'location': '/index.html',
+        'cache-control': 'no-store',
+        'set-cookie': `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`
+      });
+      response.end();
+      return;
+    }
 
     if (request.method !== 'GET' && request.method !== 'HEAD') {
       sendError(response, 405, 'Only GET and HEAD requests are supported.');
@@ -231,7 +415,41 @@ function createServer() {
       return;
     }
 
-    if (requestUrl.pathname === '/proxy') {
+    let requestedPath;
+    try {
+      requestedPath = decodeURIComponent(requestUrl.pathname);
+    } catch {
+      sendError(response, 400, 'Invalid file path.');
+      return;
+    }
+    const routePath = requestedPath || '/';
+    const normalizedRoutePath = routePath.toLowerCase();
+    const authenticated = hasValidSession(request, authConfig);
+    if (
+      (normalizedRoutePath === '/' || normalizedRoutePath === '/index.html') &&
+      authenticated
+    ) {
+      response.writeHead(302, { location: '/main.html', 'cache-control': 'no-store' });
+      response.end();
+      return;
+    }
+
+    if (
+      normalizedRoutePath !== '/' &&
+      normalizedRoutePath !== '/index.html' &&
+      (normalizedRoutePath.endsWith('.html') || normalizedRoutePath === '/proxy') &&
+      !authenticated
+    ) {
+      const next = `${routePath}${requestUrl.search}`;
+      response.writeHead(302, {
+        location: `/index.html?next=${encodeURIComponent(next)}`,
+        'cache-control': 'no-store'
+      });
+      response.end();
+      return;
+    }
+
+    if (normalizedRoutePath === '/proxy') {
       if (!requestUrl.searchParams.has('url')) {
         sendError(response, 400, 'Add a destination URL with ?url=https://example.com');
         return;
@@ -266,15 +484,7 @@ function createServer() {
       return;
     }
 
-    let requestedPath;
-    try {
-      requestedPath = decodeURIComponent(requestUrl.pathname);
-    } catch {
-      sendError(response, 400, 'Invalid file path.');
-      return;
-    }
-    requestedPath = requestedPath === '/' ? '/index.html' : requestedPath;
-    const filePath = path.resolve(ROOT, `.${requestedPath}`);
+    const filePath = path.resolve(ROOT, routePath === '/' ? './index.html' : `.${routePath}`);
     const relativePath = path.relative(ROOT, filePath);
     if (
       filePath === ROOT ||
@@ -293,20 +503,29 @@ function createServer() {
         return;
       }
 
-      response.writeHead(200, {
+      const headers = {
         'content-type': MIME_TYPES[path.extname(filePath).toLowerCase()] || 'application/octet-stream',
         'x-content-type-options': 'nosniff'
-      });
+      };
+      if (path.extname(filePath).toLowerCase() === '.html') {
+        headers['cache-control'] = 'no-store';
+      }
+      response.writeHead(200, headers);
       response.end(request.method === 'HEAD' ? undefined : body);
     });
   });
 }
 
 if (require.main === module) {
-  createServer().listen(PORT, HOST, () => {
-    console.log(`SYSTEM_CORE is running at http://${HOST}:${PORT}`);
-    console.log(`Local proxy is available at http://${HOST}:${PORT}/proxy?url=https://example.com`);
-  });
+  try {
+    createServer().listen(PORT, HOST, () => {
+      console.log(`SYSTEM_CORE is running at http://${HOST}:${PORT}`);
+      console.log(`Local proxy is available at http://${HOST}:${PORT}/proxy?url=https://example.com`);
+    });
+  } catch (error) {
+    console.error(`Unable to start SYSTEM_CORE: ${error.message}`);
+    process.exitCode = 1;
+  }
 }
 
 module.exports = {

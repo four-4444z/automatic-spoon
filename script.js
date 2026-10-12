@@ -1,15 +1,3 @@
-const AUTH_CONFIG = {
-  username: 'admin',
-  password: 'bypass77',
-  maxFailedAttempts: 5,
-  lockoutDuration: 60000, // 60 seconds
-  blockThreshold: 25
-};
-
-let failedAttempts = parseInt(localStorage.getItem('failedAttempts') || '0');
-let lockoutUntil = parseInt(localStorage.getItem('lockoutUntil') || '0');
-let isPermanentlyBlocked = localStorage.getItem('isPermanentlyBlocked') === 'true';
-
 const terminalInput = document.getElementById('terminal-input');
 const terminalOutput = document.getElementById('terminal-output');
 const proxyForm = document.getElementById('proxy-form');
@@ -250,77 +238,40 @@ if (loginForm) {
   feedback.style.fontSize = '0.9rem';
   loginForm.appendChild(feedback);
 
-  function updateFeedback(message, isError = true) {
-    feedback.textContent = message;
-    feedback.style.color = isError ? '#ff3333' : '#00ff00';
-  }
+  loginForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    feedback.textContent = 'CHECKING CREDENTIALS...';
+    feedback.style.color = '#00ff00';
 
-  // Real-time lockout timer
-  setInterval(() => {
-    if (isPermanentlyBlocked) return;
-    const now = Date.now();
-    if (now < lockoutUntil) {
-      const remaining = Math.ceil((lockoutUntil - now) / 1000);
-      updateFeedback(`SYSTEM LOCKED: RETRY IN ${remaining}s`);
-      const submitBtn = loginForm.querySelector('button[type="submit"]');
-      if (submitBtn) submitBtn.disabled = true;
-    } else {
-      const submitBtn = loginForm.querySelector('button[type="submit"]');
-      if (submitBtn && submitBtn.disabled) {
-        submitBtn.disabled = false;
-        updateFeedback('');
+    const submitButton = loginForm.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+
+    try {
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          username: loginForm.elements.username.value,
+          password: loginForm.elements.password.value
+        })
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Sign-in failed.');
+
+      feedback.textContent = 'ACCESS GRANTED';
+      const requestedPath = new URLSearchParams(window.location.search).get('next');
+      let destination = '/main.html';
+      if (requestedPath && requestedPath.startsWith('/') && !requestedPath.startsWith('//')) {
+        const candidate = new URL(requestedPath, window.location.origin);
+        if (candidate.origin === window.location.origin) destination = candidate.href;
       }
-    }
-  }, 1000);
-
-  loginForm.addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    if (isPermanentlyBlocked) {
-      updateFeedback('ACCESS DENIED: SYSTEM PERMANENTLY BLOCKED');
-      return;
-    }
-
-    const now = Date.now();
-    if (now < lockoutUntil) {
-      const remaining = Math.ceil((lockoutUntil - now) / 1000);
-      updateFeedback(`SYSTEM LOCKED: RETRY IN ${remaining}s`);
-      return;
-    }
-
-    const username = e.target.username.value;
-    const password = e.target.password.value;
-
-    if (username === 'master' && password === 'ghost_protocol_7') {
-      updateFeedback('SHADOW ACCESS GRANTED', false);
-      setTimeout(() => {
-        window.location.href = 'shadow-core.html';
-      }, 1000);
-      return;
-    }
-
-    if (username === AUTH_CONFIG.username && password === AUTH_CONFIG.password) {
-      failedAttempts = 0;
-      localStorage.setItem('failedAttempts', '0');
-      updateFeedback('ACCESS GRANTED', false);
-      setTimeout(() => {
-        window.location.href = 'main.html';
-      }, 1000);
-    } else {
-      failedAttempts++;
-      localStorage.setItem('failedAttempts', failedAttempts.toString());
-
-      if (failedAttempts >= AUTH_CONFIG.blockThreshold) {
-        isPermanentlyBlocked = true;
-        localStorage.setItem('isPermanentlyBlocked', 'true');
-        updateFeedback('ACCESS DENIED: SYSTEM PERMANENTLY BLOCKED');
-      } else if (failedAttempts % AUTH_CONFIG.maxFailedAttempts === 0) {
-        lockoutUntil = Date.now() + AUTH_CONFIG.lockoutDuration;
-        localStorage.setItem('lockoutUntil', lockoutUntil.toString());
-        updateFeedback('TOO MANY ATTEMPTS: SYSTEM LOCKED FOR 60s');
-      } else {
-        updateFeedback(`INVALID CREDENTIALS (${failedAttempts}/${AUTH_CONFIG.blockThreshold})`);
-      }
+      window.location.assign(destination);
+    } catch (error) {
+      feedback.textContent = error.message === 'Failed to fetch'
+        ? 'LOGIN SERVER UNAVAILABLE. START THE LOCAL NODE SERVER.'
+        : error.message;
+      feedback.style.color = '#ff3333';
+      submitButton.disabled = false;
     }
   });
-} 
+}
