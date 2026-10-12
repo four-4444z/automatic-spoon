@@ -264,6 +264,7 @@ let nextBrowserTabId = 0;
 let scramjetBaseUrl = null;
 let scramjetReady;
 const systemCoreApiUrl = (window.SYSTEM_CORE_API_URL || '').replace(/\/+$/, '');
+const systemCoreScramjetUrl = window.SYSTEM_CORE_SCRAMJET_URL || '';
 
 function createScramjetEmbedUrl(destination) {
   if (!scramjetBaseUrl) throw new Error('The embedded browser service is unavailable.');
@@ -626,11 +627,12 @@ browserAddressForm?.addEventListener('submit', async (event) => {
   }
 });
 
-scramjetReady = fetch(`${systemCoreApiUrl}/health`)
-    .then((response) => {
+scramjetReady = (systemCoreScramjetUrl
+  ? Promise.resolve({ scramjetUrl: systemCoreScramjetUrl })
+  : fetch(`${systemCoreApiUrl}/health`).then((response) => {
       if (!response.ok) throw new Error('The browser service is unavailable.');
       return response.json();
-    })
+    }))
     .then(({ scramjetPort: port, scramjetUrl }) => {
       if (typeof scramjetUrl === 'string') {
         const serviceUrl = new URL(scramjetUrl);

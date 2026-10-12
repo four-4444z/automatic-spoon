@@ -56,9 +56,9 @@ test('redirects the entry page to the dashboard and reports the active proxy por
   assert.match(dashboardHtml, /id="bookmark-list"/);
   assert.match(dashboardHtml, /id="bookmark-add"/);
   assert.match(dashboardHtml, /id="bookmark-form"/);
-  assert.match(dashboardHtml, /runtime-config\.js\?v=20261012-3/);
-  assert.match(dashboardHtml, /script\.js\?v=20261012-3/);
-  assert.match(dashboardHtml, /style\.css\?v=20261012-3/);
+  assert.match(dashboardHtml, /runtime-config\.js\?v=20261012-4/);
+  assert.match(dashboardHtml, /script\.js\?v=20261012-4/);
+  assert.match(dashboardHtml, /style\.css\?v=20261012-4/);
   assert.match(dashboardHtml, /id="search-status"/);
   assert.match(dashboardHtml, /THROUGH SCRAMJET/);
   assert.match(dashboardHtml, /id="dashboard-browser-chrome"/);
@@ -80,9 +80,12 @@ test('redirects the entry page to the dashboard and reports the active proxy por
   const suggestionsHtml = await (await fetch(`${baseUrl}/suggestions.html`, { headers })).text();
   assert.match(suggestionsHtml, /class="search-dashboard search-subpage"/);
   assert.match(suggestionsHtml, /id="suggestion-form"/);
-  assert.match(suggestionsHtml, /runtime-config\.js\?v=20261012-3/);
-  assert.match(suggestionsHtml, /script\.js\?v=20261012-3/);
+  assert.match(suggestionsHtml, /runtime-config\.js\?v=20261012-4/);
+  assert.match(suggestionsHtml, /script\.js\?v=20261012-4/);
   assert.match(suggestionsHtml, /suggestions\.js\?v=20261012-3/);
+  const runtimeConfig = await (await fetch(`${baseUrl}/runtime-config.js`, { headers })).text();
+  assert.match(runtimeConfig, /SYSTEM_CORE_SCRAMJET_URL/);
+  assert.match(runtimeConfig, /core-search-4444z-scramjet\.onrender\.com/);
   assert.match(suggestionsHtml, /LAST UPDATED:/);
   const settingsHtml = await (await fetch(`${baseUrl}/settings.html`, { headers })).text();
   assert.match(settingsHtml, /class="search-dashboard search-subpage"/);
