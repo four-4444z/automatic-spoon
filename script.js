@@ -266,6 +266,8 @@ let scramjetBaseUrl = null;
 let scramjetReady;
 const systemCoreApiUrl = (window.SYSTEM_CORE_API_URL || '').replace(/\/+$/, '');
 const systemCoreScramjetUrl = window.SYSTEM_CORE_SCRAMJET_URL || '';
+const isAppleMobile = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
 function createScramjetEmbedUrl(destination) {
   if (!scramjetBaseUrl) throw new Error('The embedded browser service is unavailable.');
@@ -396,6 +398,13 @@ clearBrowserTabsButton?.addEventListener('click', () => {
 async function openWithScramjet(query, tab, historyIndex = null) {
   const destination = resolveSearchDestination(query);
   browserStatus.textContent = 'Opening embedded browser...';
+  if (isAppleMobile && systemCoreScramjetUrl) {
+    const standaloneUrl = new URL('/embed.html', systemCoreScramjetUrl);
+    standaloneUrl.searchParams.set('url', destination);
+    standaloneUrl.searchParams.set('standalone', '1');
+    window.location.assign(standaloneUrl);
+    return;
+  }
   try {
     await scramjetReady;
     if (!scramjetBaseUrl) throw new Error('The embedded browser service is unavailable.');

@@ -8,11 +8,21 @@
     :root { color-scheme: dark; font: 14px Arial, sans-serif; }
     * { box-sizing: border-box; }
     html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #050806; }
-    #status { padding: 1rem; color: #91ffba; }
+    #browser-bar { display: none; height: 44px; gap: 0.4rem; padding: 0.35rem; background: #101812; }
+    #browser-bar input { min-width: 0; flex: 1; padding: 0.35rem 0.6rem; }
+    #browser-bar button { padding: 0.35rem 0.65rem; }
+    body.standalone #browser-bar { display: flex; }
+    #status { position: fixed; z-index: 2; top: 0; left: 0; max-width: 100%; padding: 0.75rem 1rem; color: #91ffba; background: rgba(5, 8, 6, 0.94); }
+    body.standalone #status { top: 44px; }
     #proxy-frame { display: block; width: 100%; height: 100%; border: 0; }
+    body.standalone #proxy-frame { height: calc(100% - 44px); }
   </style>
 </head>
 <body>
+  <form id="browser-bar">
+    <input id="destination" type="text" aria-label="Website address" autocomplete="url" autocapitalize="none" spellcheck="false">
+    <button type="submit">Go</button>
+  </form>
   <p id="status" role="status">Starting embedded browser...</p>
   <script src="/scram/scramjet.all.js"></script>
   <script src="/baremux/index.js"></script>
@@ -20,10 +30,15 @@
     (async () => {
       const status = document.getElementById('status');
       try {
-        const target = new URL(location.href).searchParams.get('url');
+        const params = new URL(location.href).searchParams;
+        const standalone = params.get('standalone') === '1';
+        if (standalone) document.body.classList.add('standalone');
+        const address = document.getElementById('destination');
+        const target = params.get('url');
         if (!target || !['http:', 'https:'].includes(new URL(target).protocol)) {
           throw new Error('A valid HTTP or HTTPS destination is required.');
         }
+        address.value = target;
 
         const { ScramjetController } = $scramjetLoadController();
         const controller = new ScramjetController({
@@ -44,11 +59,43 @@
 
         const frame = controller.createFrame();
         frame.frame.id = 'proxy-frame';
-        frame.frame.title = new URL(target).hostname;
         document.body.appendChild(frame.frame);
-        status.hidden = true;
-        frame.go(target);
+        let loadTimeout;
+        const navigate = (value) => {
+          let destination;
+          try {
+            destination = new URL(value.includes('://') ? value : `https://${value}`);
+          } catch {
+            status.textContent = 'Enter a valid website address.';
+            status.hidden = false;
+            return;
+          }
+          if (!['http:', 'https:'].includes(destination.protocol)) {
+            status.textContent = 'Only HTTP and HTTPS websites can be opened.';
+            status.hidden = false;
+            return;
+          }
+
+          status.textContent = `Loading ${destination.hostname}...`;
+          status.hidden = false;
+          window.clearTimeout(loadTimeout);
+          frame.frame.addEventListener('load', () => {
+            window.clearTimeout(loadTimeout);
+            status.hidden = true;
+          }, { once: true });
+          frame.frame.title = destination.hostname;
+          frame.go(destination.href);
+          loadTimeout = window.setTimeout(() => {
+            status.textContent = 'Still waiting for the page. If it remains blank, Safari may be blocking the embedded browser connection.';
+          }, 15000);
+        };
+        document.getElementById('browser-bar').addEventListener('submit', (event) => {
+          event.preventDefault();
+          navigate(address.value.trim());
+        });
+        navigate(target);
       } catch (error) {
+        status.hidden = false;
         status.textContent = `Could not open this page: ${error.message}`;
       }
     })();

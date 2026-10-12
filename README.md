@@ -45,7 +45,7 @@ Opening the HTML files through an arbitrary static server will not start the bac
 3. Choose **Deploy from a branch**, select the branch containing the site and the repository root (`/`), then save.
 4. GitHub Pages publishes `index.html` as the site entry point.
 
-GitHub Pages serves the static pages. The address bar, search, and suggestions form also need the Render services described below; GitHub Pages cannot run the Node backend or Scramjet itself.
+GitHub Pages serves the static pages. The address bar, search, and suggestions form also need the Render services described below; GitHub Pages cannot run the Node backend or Scramjet itself. On iPad and iPhone, searches open Scramjet as a first-party page with its own address field because Safari may restrict browser workers in embedded cross-site frames.
 
 ## Deploy the browser backend with Render
 
