@@ -261,12 +261,13 @@ const clearBrowserTabsButton = document.getElementById('dashboard-browser-clear-
 const browserTabs = [];
 let activeBrowserTabId = null;
 let nextBrowserTabId = 0;
-let scramjetPort = null;
+let scramjetBaseUrl = null;
 let scramjetReady;
+const systemCoreApiUrl = (window.SYSTEM_CORE_API_URL || '').replace(/\/+$/, '');
 
 function createScramjetEmbedUrl(destination) {
-  if (!scramjetPort) throw new Error('Start the embedded browser with: npm start');
-  return `http://127.0.0.1:${scramjetPort}/embed.html?url=${encodeURIComponent(destination)}`;
+  if (!scramjetBaseUrl) throw new Error('The embedded browser service is unavailable.');
+  return `${scramjetBaseUrl}/embed.html?url=${encodeURIComponent(destination)}`;
 }
 
 function updateBrowserNavigationControls() {
@@ -393,7 +394,7 @@ async function openWithScramjet(query, tab, historyIndex = null) {
   browserStatus.textContent = 'Opening embedded browser...';
   try {
     await scramjetReady;
-    if (!scramjetPort) throw new Error('Start both services with: npm start');
+    if (!scramjetBaseUrl) throw new Error('The embedded browser service is unavailable.');
     if (!browserTabs.includes(tab)) throw new Error('This browser tab was closed.');
     tab.label = new URL(destination).hostname;
     tab.url = destination;
@@ -624,17 +625,24 @@ browserAddressForm?.addEventListener('submit', async (event) => {
   }
 });
 
-scramjetReady = fetch('/health')
+scramjetReady = fetch(`${systemCoreApiUrl}/health`)
     .then((response) => {
-      if (!response.ok) throw new Error('The local backend is unavailable.');
+      if (!response.ok) throw new Error('The browser service is unavailable.');
       return response.json();
     })
-    .then(({ scramjetPort: port }) => {
-      if (!Number.isInteger(port) || port < 1 || port > 65535) {
-        throw new Error('The local Scramjet service is unavailable.');
+    .then(({ scramjetPort: port, scramjetUrl }) => {
+      if (typeof scramjetUrl === 'string') {
+        const serviceUrl = new URL(scramjetUrl);
+        if (!['http:', 'https:'].includes(serviceUrl.protocol)) {
+          throw new Error('The embedded browser service URL is invalid.');
+        }
+        scramjetBaseUrl = serviceUrl.origin;
+      } else if (Number.isInteger(port) && port >= 1 && port <= 65535) {
+        scramjetBaseUrl = `http://${window.location.hostname}:${port}`;
+      } else {
+        throw new Error('The embedded browser service is unavailable.');
       }
-      scramjetPort = port;
-      return port;
+      return scramjetBaseUrl;
     })
     .catch((error) => {
       if (browserStatus) browserStatus.textContent = error.message;

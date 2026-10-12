@@ -1,13 +1,23 @@
 const { createServer } = require('./server');
 
-const HOST = '127.0.0.1';
+const HOST = process.env.HOST || '127.0.0.1';
 const PORT = Number(process.env.PORT || 5000);
 const SCRAMJET_PORT = Number(process.env.SCRAMJET_PORT || 8080);
+const scramjetUrl = process.env.SCRAMJET_URL ||
+  (process.env.SCRAMJET_HOST ? `https://${process.env.SCRAMJET_HOST}` : '');
 
 async function start() {
-  const { startScramjetServer } = await import('./scramjet-server.mjs');
-  const scramjet = await startScramjetServer(SCRAMJET_PORT);
-  const systemCore = createServer(undefined, { scramjetPort: SCRAMJET_PORT });
+  let scramjet;
+  if (!scramjetUrl) {
+    const { startScramjetServer } = await import('./scramjet-server.mjs');
+    scramjet = await startScramjetServer(SCRAMJET_PORT);
+  }
+  const systemCore = createServer(undefined, {
+    ...(scramjetUrl ? {
+      scramjetUrl,
+      publicSiteOrigin: process.env.PUBLIC_SITE_ORIGIN
+    } : { scramjetPort: SCRAMJET_PORT })
+  });
 
   try {
     await new Promise((resolve, reject) => {
@@ -15,17 +25,17 @@ async function start() {
       systemCore.listen(PORT, HOST, resolve);
     });
   } catch (error) {
-    await scramjet.close();
+    if (scramjet) await scramjet.close();
     throw error;
   }
 
   console.log(`SYSTEM_CORE is running at http://${HOST}:${PORT}`);
-  console.log(`Scramjet is running at http://${HOST}:${SCRAMJET_PORT}`);
+  if (scramjet) console.log(`Scramjet is running at http://${HOST}:${SCRAMJET_PORT}`);
 
   const shutdown = () => {
     systemCore.close((error) => {
       if (error) console.error(`Unable to stop SYSTEM_CORE: ${error.message}`);
-      scramjet.close().catch((closeError) => {
+      scramjet?.close().catch((closeError) => {
         console.error(`Unable to stop Scramjet: ${closeError.message}`);
       });
     });

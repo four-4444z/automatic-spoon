@@ -9,7 +9,7 @@ import { scramjetPath } from '@mercuryworkshop/scramjet/path';
 import { server as wisp } from '@mercuryworkshop/wisp-js/server';
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
-const HOST = '127.0.0.1';
+const HOST = process.env.HOST || '127.0.0.1';
 
 wisp.options.allow_udp_streams = false;
 wisp.options.allow_private_ips = false;
@@ -64,12 +64,12 @@ app.setNotFoundHandler((_request, reply) => {
   reply.code(404).type('text/plain').send('Not found.');
 });
 
-export async function startScramjetServer(port) {
-  await app.listen({ host: HOST, port });
+export async function startScramjetServer(port, host = HOST) {
+  await app.listen({ host, port });
   const address = app.server.address();
   return {
     close: () => app.close(),
-    host: HOST,
+    host,
     port: typeof address === 'object' && address ? address.port : port
   };
 }

@@ -28,15 +28,15 @@ The former Terminal URL redirects to the dashboard. The removed standalone brows
 
 Scramjet is an AGPL-3.0-licensed upstream project. Its controller and Wisp transport are used by the local embedded browser.
 
-The **Suggest a Change** page sends feature ideas, bug reports, and content suggestions to a Discord webhook. Configure `DISCORD_WEBHOOK_URL` in the private `.env` file (use a Discord webhook URL; never add it to client-side code or commit it). The `/github` URL suffix is for GitHub event integrations; suggestions are sent to the same webhook's standard message endpoint. The endpoint is rate-limited and accepts suggestions only when a webhook is configured. GitHub Pages alone cannot process submissions; run the Node.js backend for this feature.
+The **Suggest a Change** page sends feature ideas, bug reports, and content suggestions to a Discord webhook. Configure `DISCORD_WEBHOOK_URL` in the private `.env` file for local use or as a Render secret for the public site (use a Discord webhook URL; never add it to client-side code or commit it). The `/github` URL suffix is for GitHub event integrations; suggestions are sent to the same webhook's standard message endpoint. The endpoint is rate-limited and accepts suggestions only when a webhook is configured.
 
 The site footer shows the date of the latest site update. Update its `<time>` value and displayed date when publishing a new site revision.
 
-The login flow and page/proxy access checks are currently disabled; the site opens directly without signing in. The previous sign-in API remains in the backend but is not used to protect pages or proxy requests. The backend still listens only on `127.0.0.1`, so it is not exposed to the internet or your local network.
+The login flow and page/proxy access checks are currently disabled; the site opens directly without signing in. The previous sign-in API remains in the backend but is not used to protect pages or proxy requests. For local development, both services bind only to `127.0.0.1`; the Render deployment binds publicly so the GitHub Pages site can reach it.
 
 Both local services listen only on `127.0.0.1`; they are not exposed to the internet or your local network. Scramjet runs the proxied site in its own embedded browsing context, separate from the SYSTEM_CORE origin. Its Wisp transport blocks private and loopback IP destinations. Browsing compatibility varies by site; external services may block proxy traffic or require their own sign-in.
 
-Opening the HTML files through a static server or GitHub Pages will not start the backend or provide proxy browsing. The proxy requires the local Node.js server.
+Opening the HTML files through an arbitrary static server will not start the backend or provide proxy browsing. Use the Render services for the public site or the local Node.js services for development.
 
 ## Publish with GitHub Pages
 
@@ -45,7 +45,15 @@ Opening the HTML files through a static server or GitHub Pages will not start th
 3. Choose **Deploy from a branch**, select the branch containing the site and the repository root (`/`), then save.
 4. GitHub Pages publishes `index.html` as the site entry point.
 
-GitHub Pages only serves static files; it cannot run either backend or provide proxy browsing.
+GitHub Pages serves the static pages. The address bar, search, and suggestions form also need the Render services described below; GitHub Pages cannot run the Node backend or Scramjet itself.
+
+## Deploy the browser backend with Render
+
+The root `render.yaml` Blueprint defines separate free web services for the API and Scramjet. In Render, create a new Blueprint from this repository and deploy both services. The public pages use the API URL configured in `runtime-config.js`; if Render assigns the API a different hostname, update that file to match and push the change.
+
+During Blueprint setup, provide `DISCORD_WEBHOOK_URL` as a Render secret environment variable if suggestions should be delivered. Do not put the webhook URL in `runtime-config.js` or commit it to the repository. Free Render services may sleep when idle, so the first request after inactivity can take a little while to respond.
+
+Both services run in Render, so the online site does not depend on your laptop being on. `npm start` continues to run the API and Scramjet locally on ports 5000 and 8080 for development.
 
 ## Static-site limitations
 

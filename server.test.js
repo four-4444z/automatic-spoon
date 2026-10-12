@@ -19,7 +19,11 @@ before(async () => {
     username: 'test-user',
     password: 'test-password',
     secret: 'test-session-signing-secret'
-  }, { scramjetPort: 8080 });
+  }, {
+    scramjetPort: 8080,
+    scramjetUrl: 'https://core-search-4444z-scramjet.onrender.com',
+    publicSiteOrigin: 'https://four-4444z.github.io'
+  });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   baseUrl = `http://127.0.0.1:${server.address().port}`;
   const loginResponse = await fetch(`${baseUrl}/api/login`, {
@@ -52,6 +56,7 @@ test('redirects the entry page to the dashboard and reports the active proxy por
   assert.match(dashboardHtml, /id="bookmark-list"/);
   assert.match(dashboardHtml, /id="bookmark-add"/);
   assert.match(dashboardHtml, /id="bookmark-form"/);
+  assert.match(dashboardHtml, /runtime-config\.js/);
   assert.match(dashboardHtml, /id="search-status"/);
   assert.match(dashboardHtml, /THROUGH SCRAMJET/);
   assert.match(dashboardHtml, /id="dashboard-browser-chrome"/);
@@ -73,6 +78,7 @@ test('redirects the entry page to the dashboard and reports the active proxy por
   const suggestionsHtml = await (await fetch(`${baseUrl}/suggestions.html`, { headers })).text();
   assert.match(suggestionsHtml, /class="search-dashboard search-subpage"/);
   assert.match(suggestionsHtml, /id="suggestion-form"/);
+  assert.match(suggestionsHtml, /runtime-config\.js/);
   assert.match(suggestionsHtml, /LAST UPDATED:/);
   const settingsHtml = await (await fetch(`${baseUrl}/settings.html`, { headers })).text();
   assert.match(settingsHtml, /class="search-dashboard search-subpage"/);
@@ -96,7 +102,12 @@ test('redirects the entry page to the dashboard and reports the active proxy por
   assert.equal((await fetch(`${baseUrl}/settings.html`)).status, 200);
   assert.equal((await fetch(`${baseUrl}/theme.html`, { headers })).status, 404);
   assert.equal((await fetch(`${baseUrl}/index.html`, { redirect: 'manual' })).headers.get('location'), '/main.html');
-  assert.deepEqual(await health.json(), { status: 'ok', proxyPort: 5000, scramjetPort: 8080 });
+  assert.deepEqual(await health.json(), {
+    status: 'ok',
+    proxyPort: 5000,
+    scramjetPort: 8080,
+    scramjetUrl: 'https://core-search-4444z-scramjet.onrender.com'
+  });
 });
 
 test('serves pages and allows proxy requests without a login cookie', async () => {
@@ -108,6 +119,39 @@ test('serves pages and allows proxy requests without a login cookie', async () =
   );
   assert.equal(proxyResponse.status, 400);
   assert.match(await proxyResponse.text(), /public IP addresses/);
+});
+
+test('allows the public GitHub Pages origin to read health and preflight suggestions', async () => {
+  const origin = 'https://four-4444z.github.io';
+  const health = await fetch(`${baseUrl}/health`, { headers: { origin } });
+  assert.equal(health.status, 200);
+  assert.equal(health.headers.get('access-control-allow-origin'), origin);
+
+  const deniedHealth = await fetch(`${baseUrl}/health`, {
+    headers: { origin: 'https://attacker.example' }
+  });
+  assert.equal(deniedHealth.status, 403);
+  assert.equal(deniedHealth.headers.get('access-control-allow-origin'), null);
+
+  const suggestion = await fetch(`${baseUrl}/api/suggestions`, {
+    method: 'POST',
+    headers: { origin, 'content-type': 'application/json' },
+    body: JSON.stringify({ type: 'feature', title: 'Check cross-origin API access' })
+  });
+  assert.equal(suggestion.status, 503);
+  assert.equal(suggestion.headers.get('access-control-allow-origin'), origin);
+
+  const preflight = await fetch(`${baseUrl}/api/suggestions`, {
+    method: 'OPTIONS',
+    headers: {
+      origin,
+      'access-control-request-method': 'POST',
+      'access-control-request-headers': 'content-type'
+    }
+  });
+  assert.equal(preflight.status, 204);
+  assert.equal(preflight.headers.get('access-control-allow-origin'), origin);
+  assert.match(preflight.headers.get('access-control-allow-methods'), /POST/);
 });
 
 test('accepts validated suggestions and sends them to the configured Discord webhook', async () => {

@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: core-search-4444z-api
+    runtime: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 22.20.0
+      - key: HOST
+        value: 0.0.0.0
+      - key: PUBLIC_SITE_ORIGIN
+        value: https://four-4444z.github.io
+      - key: SCRAMJET_HOST
+        fromService:
+          type: web
+          name: core-search-4444z-scramjet
+          property: host
+      - key: DISCORD_WEBHOOK_URL
+        sync: false
+  - type: web
+    name: core-search-4444z-scramjet
+    runtime: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: npm run start:scramjet
+    envVars:
+      - key: NODE_VERSION
+        value: 22.20.0
+      - key: HOST
+        value: 0.0.0.0

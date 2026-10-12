@@ -555,6 +555,10 @@ button:hover {
   background: var(--theme-accent);
 }
 
+.search-dashboard .dashboard-browser-menu.menu-toggle.is-active .bar:nth-child(2) {
+  opacity: 0;
+}
+
 .search-dashboard .dashboard-browser-menu.menu-toggle.is-active .bar:nth-child(1) {
   transform: translateY(5px) rotate(45deg);
 }

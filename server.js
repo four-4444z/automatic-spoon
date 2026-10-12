@@ -409,6 +409,33 @@ function createServer(authConfig = loadAuthConfig(), options = {}) {
   return http.createServer(async (request, response) => {
     const requestUrl = new URL(request.url, `http://${HOST}:${PORT}`);
 
+    if (['/health', '/api/suggestions'].includes(requestUrl.pathname) && request.headers.origin) {
+      let origin;
+      try {
+        origin = new URL(request.headers.origin);
+      } catch {
+        sendJson(response, 403, { error: 'Requests must come from this site.' });
+        return;
+      }
+
+      const sameOrigin = origin.host === request.headers.host;
+      const configuredOrigin = options.publicSiteOrigin && origin.origin === options.publicSiteOrigin;
+      if (!['http:', 'https:'].includes(origin.protocol) || (!sameOrigin && !configuredOrigin)) {
+        sendJson(response, 403, { error: 'Requests must come from this site.' });
+        return;
+      }
+
+      response.setHeader('Access-Control-Allow-Origin', origin.origin);
+      response.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      response.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      response.setHeader('Vary', 'Origin');
+      if (request.method === 'OPTIONS') {
+        response.writeHead(204);
+        response.end();
+        return;
+      }
+    }
+
     if (requestUrl.pathname === '/api/suggestions' && request.method === 'POST') {
       const origin = request.headers.origin;
       if (origin) {
@@ -421,7 +448,8 @@ function createServer(authConfig = loadAuthConfig(), options = {}) {
         }
         if (
           !['http:', 'https:'].includes(parsedOrigin.protocol) ||
-          parsedOrigin.host !== request.headers.host
+          (parsedOrigin.host !== request.headers.host &&
+            parsedOrigin.origin !== options.publicSiteOrigin)
         ) {
           sendJson(response, 403, { error: 'Suggestion requests must come from this site.' });
           return;
@@ -578,6 +606,7 @@ function createServer(authConfig = loadAuthConfig(), options = {}) {
     if (requestUrl.pathname === '/health') {
       const health = { status: 'ok', proxyPort: PORT };
       if (options.scramjetPort) health.scramjetPort = options.scramjetPort;
+      if (options.scramjetUrl) health.scramjetUrl = options.scramjetUrl;
       response.writeHead(200, {
         'content-type': 'application/json; charset=utf-8',
         'cache-control': 'no-store'

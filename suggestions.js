@@ -9,7 +9,8 @@ suggestionForm.addEventListener('submit', async (event) => {
   feedback.textContent = 'Sending your suggestion...';
 
   try {
-    const response = await fetch('/api/suggestions', {
+    const apiUrl = (window.SYSTEM_CORE_API_URL || '').replace(/\/+$/, '');
+    const response = await fetch(`${apiUrl}/api/suggestions`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({

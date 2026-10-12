@@ -3,7 +3,8 @@
   "private": true,
   "scripts": {
     "setup:scramjet": "npm install",
-    "start": "node start.js"
+    "start": "node start.js",
+    "start:scramjet": "node scramjet-start.mjs"
   },
   "engines": {
     "node": ">=20"

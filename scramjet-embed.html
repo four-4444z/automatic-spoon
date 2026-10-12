@@ -38,7 +38,8 @@
         await navigator.serviceWorker.ready;
 
         const connection = new BareMux.BareMuxConnection('/baremux/worker.js');
-        const websocket = `ws://${location.host}/wisp/`;
+        const websocketProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const websocket = `${websocketProtocol}//${location.host}/wisp/`;
         await connection.setTransport('/libcurl/index.mjs', [{ websocket }]);
 
         const frame = controller.createFrame();
