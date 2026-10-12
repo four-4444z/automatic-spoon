@@ -3,8 +3,11 @@ const { createServer } = require('./server');
 const HOST = process.env.HOST || '127.0.0.1';
 const PORT = Number(process.env.PORT || 5000);
 const SCRAMJET_PORT = Number(process.env.SCRAMJET_PORT || 8080);
+const scramjetHost = process.env.SCRAMJET_HOST;
 const scramjetUrl = process.env.SCRAMJET_URL ||
-  (process.env.SCRAMJET_HOST ? `https://${process.env.SCRAMJET_HOST}` : '');
+  (scramjetHost
+    ? `https://${scramjetHost.endsWith('.onrender.com') ? scramjetHost : `${scramjetHost}.onrender.com`}`
+    : '');
 
 async function start() {
   let scramjet;
