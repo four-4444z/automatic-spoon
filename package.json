@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "setup:scramjet": "npm install",
+    "copy:scramjet-client": "node scripts/copy-scramjet-client.mjs",
     "start": "node start.js",
     "start:scramjet": "node scramjet-start.mjs"
   },

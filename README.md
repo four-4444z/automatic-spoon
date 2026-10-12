@@ -45,7 +45,7 @@ Opening the HTML files through an arbitrary static server will not start the bac
 3. Choose **Deploy from a branch**, select the branch containing the site and the repository root (`/`), then save.
 4. GitHub Pages publishes `index.html` as the site entry point.
 
-GitHub Pages serves the static pages. The address bar, search, and suggestions form also need the Render services described below; GitHub Pages cannot run the Node backend or Scramjet itself. On iPad and iPhone, searches open Scramjet as a first-party page with its own address field because Safari may restrict browser workers in embedded cross-site frames.
+GitHub Pages serves the static pages and the Scramjet client runtime. The address bar, search, and suggestions form also need the Render services described below; GitHub Pages cannot run the Node backend or Wisp proxy transport. Scramjet client assets in `scram`, `baremux`, and `libcurl` are copied from the installed packages with `npm run copy:scramjet-client`. The app embeds that client on its own origin, while the Wisp WebSocket transport runs on Render.
 
 ## Deploy the browser backend with Render
 

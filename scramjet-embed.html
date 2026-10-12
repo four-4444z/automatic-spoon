@@ -49,12 +49,27 @@
           }
         });
         await controller.init();
-        await navigator.serviceWorker.register('/scramjet-sw.js');
+        await navigator.serviceWorker.register('/scramjet-sw.js?v=20261012-8', { scope: '/' });
         await navigator.serviceWorker.ready;
+        if (!navigator.serviceWorker.controller) {
+          await new Promise((resolve, reject) => {
+            const timeout = window.setTimeout(() => {
+              navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
+              reject(new Error('The browser worker did not take control of this page.'));
+            }, 10000);
+            const onControllerChange = () => {
+              window.clearTimeout(timeout);
+              navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
+              resolve();
+            };
+            navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
+            if (navigator.serviceWorker.controller) onControllerChange();
+          });
+        }
 
         const connection = new BareMux.BareMuxConnection('/baremux/worker.js');
         const websocketProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const websocket = `${websocketProtocol}//${location.host}/wisp/`;
+        const websocket = params.get('wisp') || `${websocketProtocol}//${location.host}/wisp/`;
         await connection.setTransport('/libcurl/index.mjs', [{ websocket }]);
 
         const frame = controller.createFrame();
