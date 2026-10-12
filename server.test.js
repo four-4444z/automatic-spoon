@@ -169,6 +169,7 @@ test('accepts validated suggestions and sends them to the configured Discord web
     secret: 'test-session-signing-secret'
   }, {
     discordWebhookUrl: suppliedWebhookUrl,
+    publicSiteOrigin: 'https://four-4444z.github.io',
     sendDiscordWebhook: async (_webhookUrl, suggestion) => { delivered = suggestion; }
   });
   await new Promise((resolve) => suggestionServer.listen(0, '127.0.0.1', resolve));
@@ -176,7 +177,10 @@ test('accepts validated suggestions and sends them to the configured Discord web
   try {
     const response = await fetch(suggestionUrl, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: {
+        origin: 'https://four-4444z.github.io',
+        'content-type': 'application/json'
+      },
       body: JSON.stringify({
         type: 'feature',
         title: 'Add keyboard shortcuts',
@@ -185,6 +189,10 @@ test('accepts validated suggestions and sends them to the configured Discord web
       })
     });
     assert.equal(response.status, 200);
+    assert.equal(
+      response.headers.get('access-control-allow-origin'),
+      'https://four-4444z.github.io'
+    );
     assert.deepEqual(await response.json(), { ok: true });
     assert.deepEqual(delivered, {
       type: 'feature',
